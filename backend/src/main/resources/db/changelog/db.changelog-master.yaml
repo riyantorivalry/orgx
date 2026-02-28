@@ -1,0 +1,79 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-members
+      author: codex
+      changes:
+        - createTable:
+            tableName: members
+            columns:
+              - column: { name: id, type: UUID, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: member_code, type: VARCHAR(50), constraints: { nullable: false, unique: true } }
+              - column: { name: full_name, type: VARCHAR(150), constraints: { nullable: false } }
+              - column: { name: active, type: BOOLEAN, defaultValueBoolean: true, constraints: { nullable: false } }
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+              - column: { name: updated_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+
+  - changeSet:
+      id: 002-create-sessions
+      author: codex
+      changes:
+        - createTable:
+            tableName: attendance_sessions
+            columns:
+              - column: { name: id, type: UUID, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: event_name, type: VARCHAR(150), constraints: { nullable: false } }
+              - column: { name: starts_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+              - column: { name: ends_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+              - column: { name: status, type: VARCHAR(20), constraints: { nullable: false } }
+              - column: { name: created_by, type: VARCHAR(100), constraints: { nullable: false } }
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+              - column: { name: updated_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+
+  - changeSet:
+      id: 003-create-session-tokens
+      author: codex
+      changes:
+        - createTable:
+            tableName: session_tokens
+            columns:
+              - column: { name: id, type: UUID, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: session_id, type: UUID, constraints: { nullable: false } }
+              - column: { name: token_hash, type: VARCHAR(128), constraints: { nullable: false } }
+              - column: { name: issued_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+              - column: { name: expires_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+              - column: { name: revoked, type: BOOLEAN, defaultValueBoolean: false, constraints: { nullable: false } }
+        - addForeignKeyConstraint:
+            baseTableName: session_tokens
+            baseColumnNames: session_id
+            referencedTableName: attendance_sessions
+            referencedColumnNames: id
+            constraintName: fk_session_tokens_session
+
+  - changeSet:
+      id: 004-create-attendance-records
+      author: codex
+      changes:
+        - createTable:
+            tableName: attendance_records
+            columns:
+              - column: { name: id, type: UUID, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: session_id, type: UUID, constraints: { nullable: false } }
+              - column: { name: member_id, type: UUID, constraints: { nullable: false } }
+              - column: { name: checked_in_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+              - column: { name: source, type: VARCHAR(20), constraints: { nullable: false } }
+        - addForeignKeyConstraint:
+            baseTableName: attendance_records
+            baseColumnNames: session_id
+            referencedTableName: attendance_sessions
+            referencedColumnNames: id
+            constraintName: fk_attendance_records_session
+        - addForeignKeyConstraint:
+            baseTableName: attendance_records
+            baseColumnNames: member_id
+            referencedTableName: members
+            referencedColumnNames: id
+            constraintName: fk_attendance_records_member
+        - addUniqueConstraint:
+            tableName: attendance_records
+            columnNames: session_id, member_id
+            constraintName: uk_session_member
