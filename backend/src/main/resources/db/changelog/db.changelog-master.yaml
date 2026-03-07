@@ -77,3 +77,90 @@ databaseChangeLog:
             tableName: attendance_records
             columnNames: session_id, member_id
             constraintName: uk_session_member
+
+  - changeSet:
+      id: 005-add-created-by-to-members
+      author: codex
+      changes:
+        - addColumn:
+            tableName: members
+            columns:
+              - column:
+                  name: created_by
+                  type: VARCHAR(100)
+                  defaultValue: system
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 006-add-member-profile-fields
+      author: codex
+      changes:
+        - addColumn:
+            tableName: members
+            columns:
+              - column:
+                  name: dob
+                  type: DATE
+              - column:
+                  name: blood_type
+                  type: VARCHAR(5)
+              - column:
+                  name: address
+                  type: VARCHAR(255)
+
+  - changeSet:
+      id: 007-add-member-email
+      author: codex
+      changes:
+        - addColumn:
+            tableName: members
+            columns:
+              - column:
+                  name: email
+                  type: VARCHAR(150)
+
+  - changeSet:
+      id: 008-add-member-updated-by
+      author: codex
+      changes:
+        - addColumn:
+            tableName: members
+            columns:
+              - column:
+                  name: updated_by
+                  type: VARCHAR(100)
+                  defaultValue: system
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 009-add-session-mandatory-and-updated-by
+      author: codex
+      changes:
+        - addColumn:
+            tableName: attendance_sessions
+            columns:
+              - column:
+                  name: is_mandatory
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_by
+                  type: VARCHAR(100)
+                  defaultValue: system
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 010-add-member-mobile-number
+      author: codex
+      changes:
+        - addColumn:
+            tableName: members
+            columns:
+              - column:
+                  name: mobile_number
+                  type: VARCHAR(30)

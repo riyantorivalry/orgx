@@ -1,0 +1,9 @@
+target/
+
+# Local run outputs
+*.log
+logs/
+
+# OS/editor artifacts
+.DS_Store
+Thumbs.db

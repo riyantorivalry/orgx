@@ -5,12 +5,17 @@ import com.orgx.attendance.domain.SessionToken;
 import com.orgx.attendance.repository.AttendanceSessionRepository;
 import com.orgx.attendance.repository.SessionTokenRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.OffsetDateTime;
 import java.util.HexFormat;
 import java.util.UUID;
+
+import static org.springframework.http.HttpStatus.GONE;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
 public class TokenService {
@@ -22,23 +27,36 @@ public class TokenService {
         this.sessionRepository = sessionRepository;
     }
 
-    public SessionToken issue(UUID sessionId) {
-        AttendanceSession session = sessionRepository.findById(sessionId).orElseThrow();
+    public IssuedToken issue(UUID sessionId) {
+        AttendanceSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Session not found"));
         String raw = UUID.randomUUID() + "." + UUID.randomUUID();
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime expiresAt = now.plusMinutes(5);
+
         SessionToken token = new SessionToken();
         token.setSession(session);
-        token.setIssuedAt(OffsetDateTime.now());
-        token.setExpiresAt(OffsetDateTime.now().plusMinutes(5));
+        token.setIssuedAt(now);
+        token.setExpiresAt(expiresAt);
         token.setTokenHash(hash(raw));
         token.setRevoked(false);
-        SessionToken saved = tokenRepository.save(token);
-        saved.setTokenHash(raw);
-        return saved;
+        tokenRepository.save(token);
+
+        return new IssuedToken(sessionId, raw, expiresAt);
     }
 
     public SessionToken validateRawToken(String rawToken) {
-        return tokenRepository.findByTokenHashAndRevokedFalseAndExpiresAtAfter(hash(rawToken), OffsetDateTime.now())
-                .orElseThrow();
+        String tokenHash = hash(rawToken);
+        SessionToken token = tokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Invalid token"));
+
+        if (token.isRevoked()) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Token revoked");
+        }
+        if (!token.getExpiresAt().isAfter(OffsetDateTime.now())) {
+            throw new ResponseStatusException(GONE, "Token expired");
+        }
+        return token;
     }
 
     private String hash(String value) {
@@ -48,5 +66,8 @@ public class TokenService {
         } catch (Exception ex) {
             throw new IllegalStateException(ex);
         }
+    }
+
+    public record IssuedToken(UUID sessionId, String token, OffsetDateTime expiresAt) {
     }
 }

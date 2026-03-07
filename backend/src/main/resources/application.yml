@@ -16,3 +16,14 @@ spring:
 
 server:
   port: 8080
+
+app:
+  admin:
+    username: admin
+    password: admin123
+    session-hours: 12
+  security:
+    rate-limit:
+      window-seconds: 60
+      public-max-requests: 120
+      attendance-max-requests: 20

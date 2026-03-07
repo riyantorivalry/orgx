@@ -33,6 +33,12 @@ public class AttendanceSession {
     private String createdBy;
 
     @Column(nullable = false)
+    private boolean isMandatory;
+
+    @Column(nullable = false, length = 100)
+    private String updatedBy;
+
+    @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
     @Column(nullable = false)

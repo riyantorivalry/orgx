@@ -9,6 +9,6 @@ public record CreateSessionRequest(
         @NotBlank String eventName,
         @NotNull OffsetDateTime startsAt,
         @NotNull OffsetDateTime endsAt,
-        @NotBlank String createdBy
+        boolean mandatory
 ) {
 }
