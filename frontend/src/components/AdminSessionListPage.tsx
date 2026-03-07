@@ -6,6 +6,8 @@ import { StatusMessage } from "./StatusMessage";
 
 export function AdminSessionListPage() {
   const [sessions, setSessions] = useState<AdminSessionListItem[]>([]);
+  const [query, setQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -15,6 +17,7 @@ export function AdminSessionListPage() {
   const [createdSessionId, setCreatedSessionId] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [updateError, setUpdateError] = useState("");
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -47,12 +50,33 @@ export function AdminSessionListPage() {
     setSelectedIds((prev) => prev.filter((id) => sessions.some((s) => s.id === id)));
   }, [sessions]);
 
-  const totalPages = Math.max(1, Math.ceil(sessions.length / pageSize));
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const filteredSessions = sessions.filter((session) => {
+    if (!normalizedSearchQuery) {
+      return true;
+    }
+    return [
+      session.id,
+      session.eventName,
+      session.status,
+      session.mandatory ? "mandatory" : "optional",
+      session.createdBy,
+      session.updatedBy,
+    ].some((value) => value.toLowerCase().includes(normalizedSearchQuery));
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredSessions.length / pageSize));
   const currentPageSafe = Math.min(currentPage, totalPages);
   const pageStart = (currentPageSafe - 1) * pageSize;
-  const visibleSessions = sessions.slice(pageStart, pageStart + pageSize);
+  const visibleSessions = filteredSessions.slice(pageStart, pageStart + pageSize);
   const selectedCount = selectedIds.length;
   const selectedSession = selectedCount === 1 ? sessions.find((s) => s.id === selectedIds[0]) : null;
+
+  const onSearch = (e: FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(query);
+    setCurrentPage(1);
+  };
 
   const toggleSelection = (sessionId: string) => {
     setSelectedIds((prev) => prev.includes(sessionId) ? prev.filter((id) => id !== sessionId) : [...prev, sessionId]);
@@ -111,9 +135,7 @@ export function AdminSessionListPage() {
     if (!selectedIds.length) {
       return;
     }
-    if (!globalThis.confirm(`Delete ${selectedIds.length} selected session(s)?`)) {
-      return;
-    }
+    setShowDeleteModal(false);
     setDeleting(true);
     setError("");
     try {
@@ -127,6 +149,13 @@ export function AdminSessionListPage() {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const onRequestDelete = () => {
+    if (!selectedIds.length) {
+      return;
+    }
+    setShowDeleteModal(true);
   };
 
   const resetForm = () => {
@@ -176,6 +205,16 @@ export function AdminSessionListPage() {
       )}
 
       <section className="card">
+        <form className="search-form" onSubmit={onSearch}>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by event, session ID, status, type"
+          />
+          <button type="submit">Search</button>
+        </form>
+
         <div className="row-actions">
           <h2></h2>
           <div className="row-actions-buttons">
@@ -184,7 +223,7 @@ export function AdminSessionListPage() {
                 <button type="button" onClick={openUpdateModal} disabled={selectedCount !== 1 || updating || deleting}>
                   Update
                 </button>
-                <button type="button" onClick={() => void onDeleteSelected()} disabled={updating || deleting}>
+                <button type="button" onClick={onRequestDelete} disabled={updating || deleting}>
                   {deleting ? "Deleting..." : "Delete"}
                 </button>
               </>
@@ -214,7 +253,7 @@ export function AdminSessionListPage() {
               </tr>
             </thead>
             <tbody>
-              {!sessions.length && (
+              {!filteredSessions.length && (
                 <tr>
                   <td colSpan={7}>No sessions found.</td>
                 </tr>
@@ -255,7 +294,7 @@ export function AdminSessionListPage() {
             </tbody>
           </table>
         </div>
-        {sessions.length > pageSize && (
+        {filteredSessions.length > pageSize && (
           <div className="pagination-row">
             <button
               type="button"
@@ -275,6 +314,37 @@ export function AdminSessionListPage() {
           </div>
         )}
       </section>
+
+      {showDeleteModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Confirm delete sessions">
+          <section className="card modal-card has-zones">
+            <button
+              type="button"
+              className="modal-close-x"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+              aria-label="Close popup"
+            >
+              &times;
+            </button>
+            <div className="modal-panel-header">
+              <h2 className="modal-title">Delete Session</h2>
+            </div>
+            <div className="modal-panel-body">
+              <p>Are you sure you want to delete {selectedIds.length} selected session(s)?</p>
+              <p>This action cannot be undone.</p>
+            </div>
+            <div className="modal-panel-footer">
+              <button type="button" className="button-secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+                Cancel
+              </button>
+              <button type="button" className="button-danger" onClick={() => void onDeleteSelected()} disabled={deleting}>
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {showUpdateModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Update session">

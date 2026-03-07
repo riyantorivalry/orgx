@@ -16,6 +16,7 @@ export function AdminMemberListPage() {
   const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -149,10 +150,7 @@ export function AdminMemberListPage() {
     if (!selectedIds.length) {
       return;
     }
-    const confirmed = globalThis.confirm(`Delete ${selectedIds.length} selected member(s)?`);
-    if (!confirmed) {
-      return;
-    }
+    setShowDeleteModal(false);
     setDeleting(true);
     setError("");
     try {
@@ -166,6 +164,13 @@ export function AdminMemberListPage() {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const onRequestDelete = () => {
+    if (!selectedIds.length) {
+      return;
+    }
+    setShowDeleteModal(true);
   };
 
   const toggleSelection = (memberId: string) => {
@@ -216,7 +221,7 @@ export function AdminMemberListPage() {
                 <button type="button" onClick={openUpdateModal} disabled={selectedCount !== 1 || updating || deleting}>
                   Update
                 </button>
-                <button type="button" onClick={() => void onDeleteSelected()} disabled={deleting || updating}>
+                <button type="button" onClick={onRequestDelete} disabled={deleting || updating}>
                   {deleting ? "Deleting..." : "Delete"}
                 </button>
               </>
@@ -310,6 +315,37 @@ export function AdminMemberListPage() {
           </div>
         )}
       </section>
+
+      {showDeleteModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Confirm delete members">
+          <section className="card modal-card has-zones">
+            <button
+              type="button"
+              className="modal-close-x"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+              aria-label="Close popup"
+            >
+              &times;
+            </button>
+            <div className="modal-panel-header">
+              <h2 className="modal-title">Delete Member</h2>
+            </div>
+            <div className="modal-panel-body">
+              <p>Are you sure you want to delete {selectedIds.length} selected member(s)?</p>
+              <p>This action cannot be undone.</p>
+            </div>
+            <div className="modal-panel-footer">
+              <button type="button" className="button-secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+                Cancel
+              </button>
+              <button type="button" className="button-danger" onClick={() => void onDeleteSelected()} disabled={deleting}>
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {showCreateModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Create member">

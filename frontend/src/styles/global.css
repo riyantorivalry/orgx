@@ -925,6 +925,7 @@ code {
 .modal-panel-footer {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   padding: 14px 18px 18px;
   border-top: 1px solid #cfddf1;
   background: #eef5ff;
@@ -932,6 +933,28 @@ code {
 
 .modal-panel-footer button {
   justify-self: auto;
+}
+
+.button-secondary {
+  background: #ffffff;
+  color: #2e476c;
+  border-color: #b8cbe8;
+}
+
+.button-secondary:hover {
+  background: #f4f8ff;
+  border-color: #9eb7dc;
+}
+
+.button-danger {
+  background: #b12f2f;
+  color: #ffffff;
+  border-color: #b12f2f;
+}
+
+.button-danger:hover {
+  background: #8f2525;
+  border-color: #8f2525;
 }
 
 .modal-close-x:hover {
