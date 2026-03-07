@@ -31,6 +31,11 @@ public class AdminAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String path = request.getRequestURI();
         if (!path.startsWith("/api/admin/") || path.startsWith("/api/admin/auth/")) {
             filterChain.doFilter(request, response);
