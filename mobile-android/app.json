@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Attendance Mobile",
+    "slug": "attendance-mobile-android",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "platforms": ["android", "web"],
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.orgx.attendance.mobile"
+    }
+  }
+}

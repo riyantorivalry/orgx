@@ -1,0 +1,16 @@
+export const theme = {
+  bg: "#F4F7FB",
+  ink: "#152238",
+  muted: "#56657E",
+  card: "#FFFFFF",
+  stroke: "#D5DEEA",
+  primary: "#1F4F9A",
+  primaryStrong: "#163E7B",
+  primarySoft: "#E9F0FF",
+  successBg: "#F2FFF7",
+  successText: "#14532D",
+  warningBg: "#FFFAF2",
+  warningText: "#713F12",
+  dangerBg: "#FFF6F6",
+  dangerText: "#7F1D1D",
+};
