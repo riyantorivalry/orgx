@@ -209,7 +209,7 @@ export function AdminMemberListPage() {
 
       <section className="card">
         <div className="row-actions">
-          <h2>Member List</h2>
+          <h2></h2>
           <div className="row-actions-buttons">
             {selectedCount > 0 && (
               <>
@@ -313,7 +313,7 @@ export function AdminMemberListPage() {
 
       {showCreateModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Create member">
-          <section className="card modal-card">
+          <section className="card modal-card has-zones">
             <button
               type="button"
               className="modal-close-x"
@@ -321,82 +321,88 @@ export function AdminMemberListPage() {
               disabled={creating}
               aria-label="Close popup"
             >
-              ×
+              &times;
             </button>
-            <h2 className="modal-title">Create Member</h2>
-            {createError && (
-              <StatusMessage tone="error" assertive>
-                {createError}
-              </StatusMessage>
-            )}
-            <form className="admin-form" onSubmit={onCreate}>
-              <label>
-                <span className="field-label">Full Name <span className="required-star">*</span></span>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
-                  required
-                />
-              </label>
-              <label>
-                Date of Birth
-                <input type="date" value={dob} onChange={(event) => setDob(event.target.value)} />
-              </label>
-              <label>
-                Blood Type
-                <input
-                  type="text"
-                  value={bloodType}
-                  onChange={(event) => setBloodType(event.target.value)}
-                  placeholder="A+, O-, AB"
-                />
-              </label>
-              <label>
-                Mobile Number
-                <input
-                  type="text"
-                  value={mobileNumber}
-                  onChange={(event) => setMobileNumber(event.target.value)}
-                  placeholder="+62 8123456789"
-                />
-              </label>
-              <label>
-                Address
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(event) => setAddress(event.target.value)}
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="name@example.com"
-                />
-              </label>
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={(event) => setActive(event.target.checked)}
-                />
-                Active member
-              </label>
-              <button type="submit" disabled={creating}>
-                {creating ? "Saving..." : "Save Member"}
+            <div className="modal-panel-header">
+              <h2 className="modal-title">New Member</h2>
+            </div>
+            <div className="modal-panel-body">
+              {createError && (
+                <StatusMessage tone="error" assertive>
+                  {createError}
+                </StatusMessage>
+              )}
+              <form id="create-member-form" className="admin-form" onSubmit={onCreate}>
+                <label>
+                  <span className="field-label">Full Name <span className="required-star">*</span></span>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  Date of Birth
+                  <input type="date" value={dob} onChange={(event) => setDob(event.target.value)} />
+                </label>
+                <label>
+                  Blood Type
+                  <input
+                    type="text"
+                    value={bloodType}
+                    onChange={(event) => setBloodType(event.target.value)}
+                    placeholder="A+, O-, AB"
+                  />
+                </label>
+                <label>
+                  Mobile Number
+                  <input
+                    type="text"
+                    value={mobileNumber}
+                    onChange={(event) => setMobileNumber(event.target.value)}
+                    placeholder="+62 8123456789"
+                  />
+                </label>
+                <label>
+                  Address
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(event) => setAddress(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="name@example.com"
+                  />
+                </label>
+                <label className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={(event) => setActive(event.target.checked)}
+                  />
+                  Active member
+                </label>
+              </form>
+            </div>
+            <div className="modal-panel-footer">
+              <button type="submit" form="create-member-form" disabled={creating}>
+                {creating ? "Saving..." : "Save"}
               </button>
-            </form>
+            </div>
           </section>
         </div>
       )}
 
       {showUpdateModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Update member">
-          <section className="card modal-card">
+          <section className="card modal-card has-zones">
             <button
               type="button"
               className="modal-close-x"
@@ -404,75 +410,80 @@ export function AdminMemberListPage() {
               disabled={updating}
               aria-label="Close popup"
             >
-              ×
+              &times;
             </button>
-            <h2 className="modal-title">Update Member</h2>
-            {updateError && (
-              <StatusMessage tone="error" assertive>
-                {updateError}
-              </StatusMessage>
-            )}
-            <form className="admin-form" onSubmit={onUpdate}>
-              <label>
-                <span className="field-label">Full Name <span className="required-star">*</span></span>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
-                  required
-                />
-              </label>
-              <label>
-                Date of Birth
-                <input type="date" value={dob} onChange={(event) => setDob(event.target.value)} />
-              </label>
-              <label>
-                Blood Type
-                <input
-                  type="text"
-                  value={bloodType}
-                  onChange={(event) => setBloodType(event.target.value)}
-                  placeholder="A+, O-, AB"
-                />
-              </label>
-              <label>
-                Mobile Number
-                <input
-                  type="text"
-                  value={mobileNumber}
-                  onChange={(event) => setMobileNumber(event.target.value)}
-                  placeholder="+62 8123456789"
-                />
-              </label>
-              <label>
-                Address
-                <input type="text" value={address} onChange={(event) => setAddress(event.target.value)} />
-              </label>
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="name@example.com"
-                />
-              </label>
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={(event) => setActive(event.target.checked)}
-                />
-                Active member
-              </label>
-              <button type="submit" disabled={updating}>
+            <div className="modal-panel-header">
+              <h2 className="modal-title">Update Member</h2>
+            </div>
+            <div className="modal-panel-body">
+              {updateError && (
+                <StatusMessage tone="error" assertive>
+                  {updateError}
+                </StatusMessage>
+              )}
+              <form id="update-member-form" className="admin-form" onSubmit={onUpdate}>
+                <label>
+                  <span className="field-label">Full Name <span className="required-star">*</span></span>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  Date of Birth
+                  <input type="date" value={dob} onChange={(event) => setDob(event.target.value)} />
+                </label>
+                <label>
+                  Blood Type
+                  <input
+                    type="text"
+                    value={bloodType}
+                    onChange={(event) => setBloodType(event.target.value)}
+                    placeholder="A+, O-, AB"
+                  />
+                </label>
+                <label>
+                  Mobile Number
+                  <input
+                    type="text"
+                    value={mobileNumber}
+                    onChange={(event) => setMobileNumber(event.target.value)}
+                    placeholder="+62 8123456789"
+                  />
+                </label>
+                <label>
+                  Address
+                  <input type="text" value={address} onChange={(event) => setAddress(event.target.value)} />
+                </label>
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="name@example.com"
+                  />
+                </label>
+                <label className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={(event) => setActive(event.target.checked)}
+                  />
+                  Active member
+                </label>
+              </form>
+            </div>
+            <div className="modal-panel-footer">
+              <button type="submit" form="update-member-form" disabled={updating}>
                 {updating ? "Updating..." : "Update"}
               </button>
-            </form>
+            </div>
           </section>
         </div>
       )}
     </main>
   );
 }
-

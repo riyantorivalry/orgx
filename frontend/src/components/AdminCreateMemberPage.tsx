@@ -53,7 +53,7 @@ export function AdminCreateMemberPage() {
   return (
     <main className="container" aria-busy={loading}>
       <header className="page-header">
-        <h1>Create Member</h1>
+        <h1>Create New</h1>
         <p>Add a member who can check in from QR attendance page.</p>
       </header>
 
@@ -141,7 +141,7 @@ export function AdminCreateMemberPage() {
           </label>
 
           <button type="submit" disabled={loading}>
-            {loading ? "Creating..." : "Create Member"}
+            {loading ? "Creating..." : "New Member"}
           </button>
         </form>
       </section>

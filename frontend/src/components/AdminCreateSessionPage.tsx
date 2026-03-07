@@ -141,7 +141,7 @@ export function AdminCreateSessionPage() {
               onClick={() => { globalThis.location.href = "/admin/sessions"; }}
               aria-label="Close popup"
             >
-              ×
+              &times;
             </button>
             <h2 className="modal-title">Session Created</h2>
             <p>Session ID: <code>{createdSession.id}</code></p>
@@ -156,5 +156,3 @@ export function AdminCreateSessionPage() {
     </main>
   );
 }
-
-

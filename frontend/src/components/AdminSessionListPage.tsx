@@ -177,7 +177,7 @@ export function AdminSessionListPage() {
 
       <section className="card">
         <div className="row-actions">
-          <h2>Session List</h2>
+          <h2></h2>
           <div className="row-actions-buttons">
             {selectedCount > 0 && (
               <>
@@ -278,7 +278,7 @@ export function AdminSessionListPage() {
 
       {showUpdateModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Update session">
-          <section className="card modal-card">
+          <section className="card modal-card has-zones">
             <button
               type="button"
               className="modal-close-x"
@@ -286,50 +286,56 @@ export function AdminSessionListPage() {
               disabled={updating}
               aria-label="Close popup"
             >
-              ×
+              &times;
             </button>
-            <h2 className="modal-title">Update</h2>
-            {updateError && (
-              <StatusMessage tone="error" assertive>
-                {updateError}
-              </StatusMessage>
-            )}
-            <form className="admin-form" onSubmit={(e) => void onUpdate(e)}>
-              <label>
-                <span className="field-label">Event Name <span className="required-star">*</span></span>
-                <input type="text" value={eventName} onChange={(e) => setEventName(e.target.value)} required />
-              </label>
-              <label>
-                <span className="field-label">Starts At <span className="required-star">*</span></span>
-                <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
-              </label>
-              <label>
-                <span className="field-label">Ends At <span className="required-star">*</span></span>
-                <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required />
-              </label>
-              <label>
-                <span className="field-label">Is Mandatory <span className="required-star">*</span></span>
-                <select
-                  value={mandatory}
-                  onChange={(e) => setMandatory(e.target.value as "" | "true" | "false")}
-                  required
-                >
-                  <option value="">Select option</option>
-                  <option value="true">Mandatory</option>
-                  <option value="false">Optional</option>
-                </select>
-              </label>
-              <button type="submit" disabled={updating}>
+            <div className="modal-panel-header">
+              <h2 className="modal-title">Update</h2>
+            </div>
+            <div className="modal-panel-body">
+              {updateError && (
+                <StatusMessage tone="error" assertive>
+                  {updateError}
+                </StatusMessage>
+              )}
+              <form id="update-session-form" className="admin-form" onSubmit={(e) => void onUpdate(e)}>
+                <label>
+                  <span className="field-label">Event Name <span className="required-star">*</span></span>
+                  <input type="text" value={eventName} onChange={(e) => setEventName(e.target.value)} required />
+                </label>
+                <label>
+                  <span className="field-label">Starts At <span className="required-star">*</span></span>
+                  <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
+                </label>
+                <label>
+                  <span className="field-label">Ends At <span className="required-star">*</span></span>
+                  <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required />
+                </label>
+                <label>
+                  <span className="field-label">Is Mandatory <span className="required-star">*</span></span>
+                  <select
+                    value={mandatory}
+                    onChange={(e) => setMandatory(e.target.value as "" | "true" | "false")}
+                    required
+                  >
+                    <option value="">Select option</option>
+                    <option value="true">Mandatory</option>
+                    <option value="false">Optional</option>
+                  </select>
+                </label>
+              </form>
+            </div>
+            <div className="modal-panel-footer">
+              <button type="submit" form="update-session-form" disabled={updating}>
                 {updating ? "Updating..." : "Update"}
               </button>
-            </form>
+            </div>
           </section>
         </div>
       )}
 
       {showCreateModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Create session">
-          <section className="card modal-card">
+          <section className="card modal-card has-zones">
             <button
               type="button"
               className="modal-close-x"
@@ -337,43 +343,49 @@ export function AdminSessionListPage() {
               disabled={creating}
               aria-label="Close popup"
             >
-              ×
+              &times;
             </button>
-            <h2 className="modal-title">Create Session</h2>
-            {createError && (
-              <StatusMessage tone="error" assertive>
-                {createError}
-              </StatusMessage>
-            )}
-            <form className="admin-form" onSubmit={(e) => void onCreate(e)}>
-              <label>
-                <span className="field-label">Event Name <span className="required-star">*</span></span>
-                <input type="text" value={eventName} onChange={(e) => setEventName(e.target.value)} required />
-              </label>
-              <label>
-                <span className="field-label">Starts At <span className="required-star">*</span></span>
-                <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
-              </label>
-              <label>
-                <span className="field-label">Ends At <span className="required-star">*</span></span>
-                <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required />
-              </label>
-              <label>
-                <span className="field-label">Is Mandatory <span className="required-star">*</span></span>
-                <select
-                  value={mandatory}
-                  onChange={(e) => setMandatory(e.target.value as "" | "true" | "false")}
-                  required
-                >
-                  <option value="">Select option</option>
-                  <option value="true">Mandatory</option>
-                  <option value="false">Optional</option>
-                </select>
-              </label>
-              <button type="submit" disabled={creating}>
-                {creating ? "Creating..." : "Create Session"}
+            <div className="modal-panel-header">
+              <h2 className="modal-title">New Session</h2>
+            </div>
+            <div className="modal-panel-body">
+              {createError && (
+                <StatusMessage tone="error" assertive>
+                  {createError}
+                </StatusMessage>
+              )}
+              <form id="create-session-form" className="admin-form" onSubmit={(e) => void onCreate(e)}>
+                <label>
+                  <span className="field-label">Event Name <span className="required-star">*</span></span>
+                  <input type="text" value={eventName} onChange={(e) => setEventName(e.target.value)} required />
+                </label>
+                <label>
+                  <span className="field-label">Starts At <span className="required-star">*</span></span>
+                  <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
+                </label>
+                <label>
+                  <span className="field-label">Ends At <span className="required-star">*</span></span>
+                  <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required />
+                </label>
+                <label>
+                  <span className="field-label">Is Mandatory <span className="required-star">*</span></span>
+                  <select
+                    value={mandatory}
+                    onChange={(e) => setMandatory(e.target.value as "" | "true" | "false")}
+                    required
+                  >
+                    <option value="">Select option</option>
+                    <option value="true">Mandatory</option>
+                    <option value="false">Optional</option>
+                  </select>
+                </label>
+              </form>
+            </div>
+            <div className="modal-panel-footer">
+              <button type="submit" form="create-session-form" disabled={creating}>
+                {creating ? "Creating..." : "Save"}
               </button>
-            </form>
+            </div>
           </section>
         </div>
       )}
@@ -387,7 +399,7 @@ export function AdminSessionListPage() {
               onClick={() => setShowCreatedPopup(false)}
               aria-label="Close popup"
             >
-              ×
+              &times;
             </button>
             <h2 className="modal-title">Session Created</h2>
             <p>Session ID: <code>{createdSessionId}</code></p>
@@ -402,5 +414,3 @@ export function AdminSessionListPage() {
     </main>
   );
 }
-
-
