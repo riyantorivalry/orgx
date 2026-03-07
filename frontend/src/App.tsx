@@ -1,15 +1,67 @@
+import { AdminCreateMemberPage } from "./components/AdminCreateMemberPage";
+import { AdminCreateSessionPage } from "./components/AdminCreateSessionPage";
+import { AdminDashboardPage } from "./components/AdminDashboardPage";
+import { AdminLoginPage } from "./components/AdminLoginPage";
+import { AdminMemberDetailPage } from "./components/AdminMemberDetailPage";
+import { AdminMemberListPage } from "./components/AdminMemberListPage";
+import { AdminProtected } from "./components/AdminProtected";
+import { AdminQrDisplayPage } from "./components/AdminQrDisplayPage";
+import { AdminMonitorPage } from "./components/AdminMonitorPage";
+import { AdminSessionDetailPage } from "./components/AdminSessionDetailPage";
+import { AdminSessionListPage } from "./components/AdminSessionListPage";
+import { AdminToolbar } from "./components/AdminToolbar";
+import { MemberCheckInPage } from "./components/MemberCheckInPage";
+
 export function App() {
-  return (
-    <main style={{ fontFamily: 'Arial, sans-serif', maxWidth: 720, margin: '40px auto', padding: 16 }}>
-      <h1>Organization Attendance</h1>
-      <p>Initial scaffold is ready:</p>
-      <ul>
-        <li>Admin can maintain members (manual CRUD via backend).</li>
-        <li>Admin can create/start/close attendance sessions.</li>
-        <li>Admin can issue 5-minute QR tokens.</li>
-        <li>Public page flow can submit attendance without login.</li>
-      </ul>
-      <p>Next step: implement full UI screens and QR rendering.</p>
-    </main>
-  );
+  const path = globalThis.location.pathname;
+  if (path.startsWith("/admin/login")) {
+    return <AdminLoginPage />;
+  }
+
+  if (path.startsWith("/admin")) {
+    return (
+      <AdminProtected>
+        <div className="admin-shell">
+          <AdminToolbar />
+          <AdminAdminRoutes path={path} />
+        </div>
+      </AdminProtected>
+    );
+  }
+  return <MemberCheckInPage />;
+}
+
+type AdminAdminRoutesProps = {
+  path: string;
+};
+
+function AdminAdminRoutes({ path }: AdminAdminRoutesProps) {
+  if (path === "/admin" || path === "/admin/") {
+    return <AdminDashboardPage />;
+  }
+  if (path.startsWith("/admin/sessions/new")) {
+    return <AdminCreateSessionPage />;
+  }
+  if (path.startsWith("/admin/sessions/detail")) {
+    return <AdminSessionDetailPage />;
+  }
+  if (path.startsWith("/admin/sessions")) {
+    return <AdminSessionListPage />;
+  }
+  if (path.startsWith("/admin/members/new")) {
+    return <AdminCreateMemberPage />;
+  }
+  if (path.startsWith("/admin/members/detail")) {
+    return <AdminMemberDetailPage />;
+  }
+  if (path.startsWith("/admin/members")) {
+    return <AdminMemberListPage />;
+  }
+  if (path.startsWith("/admin/qr")) {
+    return <AdminQrDisplayPage />;
+  }
+  if (path.startsWith("/admin/monitor")) {
+    return <AdminMonitorPage />;
+  }
+  return <AdminDashboardPage />;
 }
