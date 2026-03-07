@@ -244,19 +244,18 @@ export function AdminMemberListPage() {
                     aria-label="Select all members"
                   />
                 </th>
+                <th>Name</th>
                 <th>Member Code</th>
-                <th>Full Name</th>
                 <th>Blood Type</th>
                 <th>Mobile Number</th>
                 <th>Status</th>
                 <th>Info</th>
-                <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {!members.length && (
                 <tr>
-                  <td colSpan={8}>No members found.</td>
+                  <td colSpan={7}>No members found.</td>
                 </tr>
               )}
               {visibleMembers.map((member) => (
@@ -269,8 +268,10 @@ export function AdminMemberListPage() {
                       aria-label={`Select ${member.fullName}`}
                     />
                   </td>
+                  <td>
+                    <a href={`/admin/members/detail?memberId=${member.id}`}>{member.fullName}</a>
+                  </td>
                   <td>{member.memberCode}</td>
-                  <td>{member.fullName}</td>
                   <td>{member.bloodType || "-"}</td>
                   <td>{member.mobileNumber || "-"}</td>
                   <td>
@@ -286,9 +287,6 @@ export function AdminMemberListPage() {
                     >
                       i
                     </span>
-                  </td>
-                  <td>
-                    <a href={`/admin/members/detail?memberId=${member.id}`}>Details</a>
                   </td>
                 </tr>
               ))}

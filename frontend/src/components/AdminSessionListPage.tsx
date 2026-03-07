@@ -249,13 +249,12 @@ export function AdminSessionListPage() {
                 <th>Window</th>
                 <th>Status</th>
                 <th>Info</th>
-                <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {!filteredSessions.length && (
                 <tr>
-                  <td colSpan={7}>No sessions found.</td>
+                  <td colSpan={6}>No sessions found.</td>
                 </tr>
               )}
               {visibleSessions.map((session) => (
@@ -268,7 +267,9 @@ export function AdminSessionListPage() {
                       aria-label={`Select ${session.eventName}`}
                     />
                   </td>
-                  <td>{session.eventName}</td>
+                  <td>
+                    <a href={`/admin/sessions/detail?sessionId=${session.id}`}>{session.eventName}</a>
+                  </td>
                   <td>
                     <span className={`badge ${session.mandatory ? "badge-draft" : "badge-active"}`}>
                       {session.mandatory ? "MANDATORY" : "OPTIONAL"}
@@ -285,9 +286,6 @@ export function AdminSessionListPage() {
                     >
                       i
                     </span>
-                  </td>
-                  <td>
-                    <a href={`/admin/sessions/detail?sessionId=${session.id}`}>Details</a>
                   </td>
                 </tr>
               ))}
