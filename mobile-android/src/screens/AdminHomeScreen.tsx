@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Card } from "../components/Card";
 import { ListSkeleton } from "../components/ListSkeleton";
 import { Screen } from "../components/Screen";
 import { StatusBanner } from "../components/StatusBanner";
+import { TextField } from "../components/TextField";
 import { formatDateTime } from "../lib/date";
 import { theme } from "../lib/theme";
-import { adminApi } from "../services/adminApi";
+import { adminApi, type CreateMemberInput } from "../services/adminApi";
 import { authApi } from "../services/authApi";
 import type { AdminAuthUser, AdminMember, AdminSessionDashboard, AdminSessionListItem } from "../types/admin";
 
@@ -15,6 +16,26 @@ type AdminView = "dashboard" | "sessions" | "members";
 type AdminHomeScreenProps = {
   user: AdminAuthUser;
   onLogout: () => void;
+};
+
+type MemberFormState = {
+  fullName: string;
+  dob: string;
+  bloodType: string;
+  address: string;
+  email: string;
+  mobileNumber: string;
+  active: boolean;
+};
+
+const EMPTY_MEMBER_FORM: MemberFormState = {
+  fullName: "",
+  dob: "",
+  bloodType: "",
+  address: "",
+  email: "",
+  mobileNumber: "",
+  active: true,
 };
 
 function parseDate(value: string): number {
@@ -28,13 +49,60 @@ function formatRate(value: number | undefined): string {
   return `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
 }
 
+function formToInput(form: MemberFormState): CreateMemberInput {
+  return {
+    fullName: form.fullName.trim(),
+    active: form.active,
+    dob: form.dob.trim() || undefined,
+    bloodType: form.bloodType.trim() || undefined,
+    address: form.address.trim() || undefined,
+    email: form.email.trim() || undefined,
+    mobileNumber: form.mobileNumber.trim() || undefined,
+  };
+}
+
+function memberToForm(member: AdminMember): MemberFormState {
+  return {
+    fullName: member.fullName ?? "",
+    dob: member.dob ?? "",
+    bloodType: member.bloodType ?? "",
+    address: member.address ?? "",
+    email: member.email ?? "",
+    mobileNumber: member.mobileNumber ?? "",
+    active: member.active,
+  };
+}
+
+async function confirmAction(title: string, message: string): Promise<boolean> {
+  const webConfirm = (globalThis as { confirm?: (value?: string) => boolean }).confirm;
+  if (typeof webConfirm === "function") {
+    return webConfirm(message);
+  }
+  return new Promise((resolve) => {
+    Alert.alert(
+      title,
+      message,
+      [
+        { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+        { text: "Continue", style: "destructive", onPress: () => resolve(true) },
+      ],
+      { cancelable: true, onDismiss: () => resolve(false) },
+    );
+  });
+}
+
 export function AdminHomeScreen({ user, onLogout }: AdminHomeScreenProps) {
   const [view, setView] = useState<AdminView>("dashboard");
   const [sessions, setSessions] = useState<AdminSessionListItem[]>([]);
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [sessionMetrics, setSessionMetrics] = useState<Record<string, AdminSessionDashboard>>({});
+  const [membersQuery, setMembersQuery] = useState("");
+  const [memberForm, setMemberForm] = useState<MemberFormState>(EMPTY_MEMBER_FORM);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [memberSaving, setMemberSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     void loadAll();
@@ -74,6 +142,118 @@ export function AdminHomeScreen({ user, onLogout }: AdminHomeScreenProps) {
     }
   }
 
+  async function refreshMembers(query = membersQuery) {
+    const memberData = await adminApi.listMembers(query, true);
+    setMembers(memberData);
+  }
+
+  async function runMemberSearch() {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      await refreshMembers(membersQuery);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to search members");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function resetMemberForm() {
+    setEditingMemberId(null);
+    setMemberForm(EMPTY_MEMBER_FORM);
+  }
+
+  function startEditMember(member: AdminMember) {
+    setEditingMemberId(member.id);
+    setMemberForm(memberToForm(member));
+    setError("");
+    setSuccess("");
+  }
+
+  async function saveMember() {
+    if (!memberForm.fullName.trim()) {
+      setError("Full name is required.");
+      return;
+    }
+
+    setMemberSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const payload = formToInput(memberForm);
+      if (editingMemberId) {
+        await adminApi.updateMember(editingMemberId, payload);
+        setSuccess("Member updated.");
+      } else {
+        await adminApi.createMember(payload);
+        setSuccess("Member created.");
+      }
+      resetMemberForm();
+      await refreshMembers();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save member");
+    } finally {
+      setMemberSaving(false);
+    }
+  }
+
+  async function toggleMemberActive(member: AdminMember) {
+    const nextActive = !member.active;
+    const ok = await confirmAction(
+      `${nextActive ? "Activate" : "Deactivate"} Member`,
+      `Do you want to ${nextActive ? "activate" : "deactivate"} ${member.fullName}?`,
+    );
+    if (!ok) {
+      return;
+    }
+
+    setMemberSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      await adminApi.updateMember(member.id, {
+        fullName: member.fullName,
+        active: nextActive,
+        dob: member.dob ?? undefined,
+        bloodType: member.bloodType ?? undefined,
+        address: member.address ?? undefined,
+        email: member.email ?? undefined,
+        mobileNumber: member.mobileNumber ?? undefined,
+      });
+      setSuccess(`Member ${nextActive ? "activated" : "deactivated"}.`);
+      await refreshMembers();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update member status");
+    } finally {
+      setMemberSaving(false);
+    }
+  }
+
+  async function deleteMember(member: AdminMember) {
+    const ok = await confirmAction("Delete Member", `Delete ${member.fullName}? This action cannot be undone.`);
+    if (!ok) {
+      return;
+    }
+
+    setMemberSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      await adminApi.deleteMember(member.id);
+      setSuccess("Member deleted.");
+      if (editingMemberId === member.id) {
+        resetMemberForm();
+      }
+      await refreshMembers();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete member");
+    } finally {
+      setMemberSaving(false);
+    }
+  }
+
   async function logout() {
     try {
       await authApi.logout();
@@ -85,6 +265,8 @@ export function AdminHomeScreen({ user, onLogout }: AdminHomeScreenProps) {
   return (
     <Screen title="Operations Dashboard" subtitle={`Signed in as ${user.username}`} scroll={false}>
       {error ? <StatusBanner tone="error" message={error} /> : null}
+      {success ? <StatusBanner tone="success" message={success} /> : null}
+
       <Card>
         <View style={styles.navRow}>
           {(["dashboard", "sessions", "members"] as const).map((item) => (
@@ -98,7 +280,7 @@ export function AdminHomeScreen({ user, onLogout }: AdminHomeScreenProps) {
       <View style={styles.listPane}>
         {loading && !sessions.length && !members.length ? <ListSkeleton rows={8} /> : null}
 
-        {view === "dashboard" && !loading ? (
+        {view === "dashboard" ? (
           <FlatList
             data={incomingSessions}
             keyExtractor={(item) => item.id}
@@ -148,7 +330,7 @@ export function AdminHomeScreen({ user, onLogout }: AdminHomeScreenProps) {
           />
         ) : null}
 
-        {view === "sessions" && !loading ? (
+        {view === "sessions" ? (
           <FlatList
             data={sessions}
             keyExtractor={(item) => item.id}
@@ -165,18 +347,110 @@ export function AdminHomeScreen({ user, onLogout }: AdminHomeScreenProps) {
           />
         ) : null}
 
-        {view === "members" && !loading ? (
+        {view === "members" ? (
           <FlatList
             data={members}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
-            ListHeaderComponent={<Text style={styles.sectionTitle}>Members ({members.length})</Text>}
+            keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={
+              <>
+                <Card>
+                  <Text style={styles.sectionTitle}>{editingMemberId ? "Edit Member" : "Create Member"}</Text>
+                  <TextField
+                    label="Full Name"
+                    value={memberForm.fullName}
+                    onChangeText={(value) => setMemberForm((prev) => ({ ...prev, fullName: value }))}
+                    placeholder="e.g. John Doe"
+                  />
+                  <TextField
+                    label="Date of Birth (YYYY-MM-DD)"
+                    value={memberForm.dob}
+                    onChangeText={(value) => setMemberForm((prev) => ({ ...prev, dob: value }))}
+                    placeholder="1990-12-31"
+                  />
+                  <TextField
+                    label="Blood Type"
+                    value={memberForm.bloodType}
+                    onChangeText={(value) => setMemberForm((prev) => ({ ...prev, bloodType: value }))}
+                    placeholder="O+"
+                  />
+                  <TextField
+                    label="Email"
+                    value={memberForm.email}
+                    onChangeText={(value) => setMemberForm((prev) => ({ ...prev, email: value }))}
+                    placeholder="name@example.com"
+                  />
+                  <TextField
+                    label="Mobile Number"
+                    value={memberForm.mobileNumber}
+                    onChangeText={(value) => setMemberForm((prev) => ({ ...prev, mobileNumber: value }))}
+                    placeholder="+62..."
+                  />
+                  <TextField
+                    label="Address"
+                    value={memberForm.address}
+                    onChangeText={(value) => setMemberForm((prev) => ({ ...prev, address: value }))}
+                    placeholder="Street, city"
+                  />
+                  <View style={styles.inlineRow}>
+                    <Pressable
+                      style={[styles.actionChip, memberForm.active && styles.actionChipActive]}
+                      onPress={() => setMemberForm((prev) => ({ ...prev, active: !prev.active }))}
+                    >
+                      <Text style={[styles.actionChipText, memberForm.active && styles.actionChipTextActive]}>
+                        {memberForm.active ? "Active" : "Inactive"}
+                      </Text>
+                    </Pressable>
+                    <Pressable style={styles.actionPrimary} onPress={() => void saveMember()} disabled={memberSaving}>
+                      <Text style={styles.actionPrimaryText}>
+                        {memberSaving ? "Saving..." : editingMemberId ? "Update" : "Create"}
+                      </Text>
+                    </Pressable>
+                    {editingMemberId ? (
+                      <Pressable style={styles.actionSecondary} onPress={resetMemberForm}>
+                        <Text style={styles.actionSecondaryText}>Cancel</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </Card>
+
+                <Card>
+                  <Text style={styles.sectionTitle}>Members ({members.length})</Text>
+                  <View style={styles.searchRow}>
+                    <TextInput
+                      value={membersQuery}
+                      onChangeText={setMembersQuery}
+                      placeholder="Search by name or code"
+                      placeholderTextColor="#7a879a"
+                      style={styles.searchInput}
+                      returnKeyType="search"
+                      onSubmitEditing={() => void runMemberSearch()}
+                    />
+                    <Pressable style={styles.searchButton} onPress={() => void runMemberSearch()}>
+                      <Text style={styles.searchButtonText}>Search</Text>
+                    </Pressable>
+                  </View>
+                </Card>
+              </>
+            }
             ListEmptyComponent={<Text style={styles.meta}>No members found.</Text>}
             renderItem={({ item }) => (
               <View style={styles.rowItem}>
                 <Text style={styles.titleStrong}>{item.fullName}</Text>
                 <Text style={styles.meta}>Code: {item.memberCode}</Text>
                 <Text style={styles.meta}>Status: {item.active ? "Active" : "Inactive"}</Text>
+                <View style={styles.memberActions}>
+                  <Pressable style={styles.actionSecondary} onPress={() => startEditMember(item)}>
+                    <Text style={styles.actionSecondaryText}>Edit</Text>
+                  </Pressable>
+                  <Pressable style={styles.actionSecondary} onPress={() => void toggleMemberActive(item)} disabled={memberSaving}>
+                    <Text style={styles.actionSecondaryText}>{item.active ? "Deactivate" : "Activate"}</Text>
+                  </Pressable>
+                  <Pressable style={styles.actionDanger} onPress={() => void deleteMember(item)} disabled={memberSaving}>
+                    <Text style={styles.actionDangerText}>Delete</Text>
+                  </Pressable>
+                </View>
               </View>
             )}
           />
@@ -275,21 +549,64 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
   },
-  actionsBar: {
+  inlineRow: {
     flexDirection: "row",
     gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#d6e2f3",
-    paddingTop: 10,
-    paddingBottom: 4,
+    alignItems: "center",
+    marginTop: 4,
+    flexWrap: "wrap",
   },
-  actionSecondary: {
-    flex: 1,
-    minHeight: 42,
+  actionChip: {
     borderWidth: 1,
     borderColor: "#b8cbe8",
     borderRadius: 10,
     backgroundColor: "#ffffff",
+    minHeight: 40,
+    minWidth: 90,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionChipActive: {
+    borderColor: "#a4dfc1",
+    backgroundColor: "#d4f6e4",
+  },
+  actionChipText: {
+    color: "#2e476c",
+    fontWeight: "700",
+  },
+  actionChipTextActive: {
+    color: "#0e4f31",
+  },
+  memberActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8,
+    flexWrap: "wrap",
+  },
+  actionPrimary: {
+    borderWidth: 1,
+    borderColor: theme.primary,
+    borderRadius: 10,
+    backgroundColor: theme.primary,
+    minHeight: 40,
+    minWidth: 92,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionPrimaryText: {
+    color: "#ffffff",
+    fontWeight: "700",
+  },
+  actionSecondary: {
+    borderWidth: 1,
+    borderColor: "#b8cbe8",
+    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    minHeight: 40,
+    minWidth: 86,
+    paddingHorizontal: 10,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -298,18 +615,58 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   actionDanger: {
-    minWidth: 96,
-    minHeight: 42,
     borderWidth: 1,
     borderColor: "#f0bebe",
     borderRadius: 10,
     backgroundColor: "#fff1f1",
+    minHeight: 40,
+    minWidth: 86,
+    paddingHorizontal: 10,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 10,
   },
   actionDangerText: {
     color: "#9d2424",
     fontWeight: "700",
+  },
+  searchRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#a8b8d3",
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    color: theme.ink,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    fontSize: 14,
+  },
+  searchButton: {
+    minHeight: 40,
+    minWidth: 72,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.primary,
+    backgroundColor: theme.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
+  searchButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  actionsBar: {
+    flexDirection: "row",
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#d6e2f3",
+    paddingTop: 10,
+    paddingBottom: 4,
   },
 });
