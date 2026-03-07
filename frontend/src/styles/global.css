@@ -923,13 +923,15 @@ code {
 }
 
 .modal-panel-footer {
+  display: flex;
+  justify-content: flex-end;
   padding: 14px 18px 18px;
   border-top: 1px solid #cfddf1;
   background: #eef5ff;
 }
 
 .modal-panel-footer button {
-  justify-self: start;
+  justify-self: auto;
 }
 
 .modal-close-x:hover {
