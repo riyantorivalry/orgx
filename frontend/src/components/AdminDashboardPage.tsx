@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatDateTime } from "../lib/date";
 import { adminApi } from "../services/adminApi";
-import type { AdminSessionListItem } from "../types/admin";
+import type { AdminSessionDashboard, AdminSessionListItem } from "../types/admin";
 import { StatusMessage } from "./StatusMessage";
 
 function parseDate(value: string): number {
@@ -16,8 +16,16 @@ function timeShort(value: string): string {
   return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatRate(value: number | undefined): string {
+  if (value === undefined) {
+    return "-";
+  }
+  return `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
+}
+
 export function AdminDashboardPage() {
   const [sessions, setSessions] = useState<AdminSessionListItem[]>([]);
+  const [sessionMetrics, setSessionMetrics] = useState<Record<string, AdminSessionDashboard>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [now, setNow] = useState(new Date());
@@ -64,12 +72,45 @@ export function AdminDashboardPage() {
     }) || null;
   }, [sessions]);
 
-  const incomingSession = useMemo(() => {
+  const incomingSessions = useMemo(() => {
     const now = Date.now();
     return sessions
       .filter((session) => parseDate(session.startsAt) > now)
-      .sort((a, b) => parseDate(a.startsAt) - parseDate(b.startsAt))[0] || null;
+      .sort((a, b) => parseDate(a.startsAt) - parseDate(b.startsAt))
+      .slice(0, 3);
   }, [sessions]);
+
+  useEffect(() => {
+    const targetIds = Array.from(
+      new Set([currentSession?.id, ...incomingSessions.map((session) => session.id)].filter((id): id is string => Boolean(id))),
+    );
+    if (!targetIds.length) {
+      return;
+    }
+    let active = true;
+    const run = async () => {
+      const settled = await Promise.allSettled(targetIds.map(async (sessionId) => {
+        const metrics = await adminApi.getDashboard(sessionId);
+        return { sessionId, metrics };
+      }));
+      if (!active) {
+        return;
+      }
+      setSessionMetrics((prev) => {
+        const next = { ...prev };
+        settled.forEach((result) => {
+          if (result.status === "fulfilled") {
+            next[result.value.sessionId] = result.value.metrics;
+          }
+        });
+        return next;
+      });
+    };
+    void run();
+    return () => {
+      active = false;
+    };
+  }, [currentSession, incomingSessions]);
 
   const calendarMonthLabel = now.toLocaleDateString(undefined, { month: "long", year: "numeric" });
   const monthStart = useMemo(() => new Date(now.getFullYear(), now.getMonth(), 1), [now]);
@@ -129,19 +170,43 @@ export function AdminDashboardPage() {
             <>
               <p className="spotlight-title">{currentSession.eventName}</p>
               <p>{formatDateTime(currentSession.startsAt)} - {formatDateTime(currentSession.endsAt)}</p>
-              <div className="row-actions-buttons">
-                <a href={`/admin/monitor?sessionId=${currentSession.id}`}>Open Monitor</a>
-                <a href={`/admin/qr?sessionId=${currentSession.id}`}>Open QR Display</a>
+              <div className="spotlight-metrics">
+                <div className="spotlight-metric">
+                  <span>Total Check-ins</span>
+                  <strong>{sessionMetrics[currentSession.id]?.totalCheckIns ?? "-"}</strong>
+                </div>
+                <div className="spotlight-metric">
+                  <span>Check-in Rate</span>
+                  <strong>{formatRate(sessionMetrics[currentSession.id]?.checkInRatePercent)}</strong>
+                </div>
+              </div>
+              <div className="spotlight-actions spotlight-actions-fixed">
+                <a
+                  className="spotlight-chip-link"
+                  href={`/admin/monitor?sessionId=${currentSession.id}`}
+                  title="Monitor"
+                  aria-label="Monitor"
+                >
+                  MONITOR
+                </a>
+                <a
+                  className="spotlight-chip-link"
+                  href={`/admin/qr?sessionId=${currentSession.id}`}
+                  title="QR"
+                  aria-label="QR"
+                >
+                  QR
+                </a>
               </div>
             </>
           )}
         </article>
 
         <article className="card spotlight-card spotlight-incoming">
-          <h2>Incoming Session</h2>
-          {!incomingSession && <p>No incoming session scheduled.</p>}
-          {incomingSession && (
-            <>
+          <h2>Incoming Sessions</h2>
+          {!incomingSessions.length && <p>No incoming session scheduled.</p>}
+          {incomingSessions.map((incomingSession) => (
+            <div key={incomingSession.id} className="incoming-item">
               <p className="spotlight-title">{incomingSession.eventName}</p>
               <p>Starts at: {formatDateTime(incomingSession.startsAt)}</p>
               <p className="meta-line">
@@ -150,11 +215,13 @@ export function AdminDashboardPage() {
                   {incomingSession.mandatory ? "MANDATORY" : "OPTIONAL"}
                 </span>
               </p>
-              <div className="row-actions-buttons">
-                <a href={`/admin/sessions/detail?sessionId=${incomingSession.id}`}>View Details</a>
+              <div className="spotlight-actions">
+                <a className="spotlight-link" href={`/admin/sessions/detail?sessionId=${incomingSession.id}`}>
+                  View Details
+                </a>
               </div>
-            </>
-          )}
+            </div>
+          ))}
         </article>
 
         <article className="card calendar-card">
