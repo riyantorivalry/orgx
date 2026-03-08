@@ -22,6 +22,15 @@ export type AdminSessionListItem = {
   status: string;
 };
 
+export type AdminSessionState = {
+  id: string;
+  eventName: string;
+  startsAt: string;
+  endsAt: string;
+  mandatory: boolean;
+  status: string;
+};
+
 export type AdminMember = {
   id: string;
   memberCode: string;

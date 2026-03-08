@@ -4,6 +4,7 @@ Initial implementation scaffold for a QR-based attendance system:
 
 - **Backend:** Spring Boot 3 + Liquibase + JPA
 - **Frontend:** React + Vite + TypeScript
+- **Android Mobile:** Expo + React Native + TypeScript (`mobile-android`)
 
 ## Requirements captured
 - Browser-based attendance (no mobile app required)
@@ -23,4 +24,16 @@ mvn spring-boot:run
 cd frontend
 npm install
 npm run dev
+```
+
+## Run Android mobile app
+```bash
+cd mobile-android
+npm install
+npm run android
+```
+
+Set API base URL when needed:
+```bash
+EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080
 ```

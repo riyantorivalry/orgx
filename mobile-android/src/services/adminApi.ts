@@ -1,5 +1,5 @@
 import { requestJson } from "./apiClient";
-import type { AdminMember, AdminSessionDashboard, AdminSessionListItem } from "../types/admin";
+import type { AdminMember, AdminSessionDashboard, AdminSessionListItem, AdminSessionState } from "../types/admin";
 
 export type CreateMemberInput = {
   fullName: string;
@@ -11,6 +11,13 @@ export type CreateMemberInput = {
   active: boolean;
 };
 
+export type CreateSessionInput = {
+  eventName: string;
+  startsAt: string;
+  endsAt: string;
+  mandatory: boolean;
+};
+
 export const adminApi = {
   listSessions(): Promise<AdminSessionListItem[]> {
     return requestJson<AdminSessionListItem[]>("/api/admin/sessions");
@@ -18,6 +25,34 @@ export const adminApi = {
 
   getDashboard(sessionId: string): Promise<AdminSessionDashboard> {
     return requestJson<AdminSessionDashboard>(`/api/admin/sessions/${sessionId}`);
+  },
+
+  createSession(input: CreateSessionInput): Promise<AdminSessionState> {
+    return requestJson<AdminSessionState>("/api/admin/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  },
+
+  updateSession(sessionId: string, input: CreateSessionInput): Promise<AdminSessionState> {
+    return requestJson<AdminSessionState>(`/api/admin/sessions/${sessionId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  },
+
+  startSession(sessionId: string): Promise<AdminSessionState> {
+    return requestJson<AdminSessionState>(`/api/admin/sessions/${sessionId}/start`, { method: "POST" });
+  },
+
+  closeSession(sessionId: string): Promise<AdminSessionState> {
+    return requestJson<AdminSessionState>(`/api/admin/sessions/${sessionId}/close`, { method: "POST" });
+  },
+
+  deleteSession(sessionId: string): Promise<void> {
+    return requestJson<void>(`/api/admin/sessions/${sessionId}`, { method: "DELETE" });
   },
 
   listMembers(query = "", includeInactive = true): Promise<AdminMember[]> {
