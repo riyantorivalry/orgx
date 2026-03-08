@@ -59,6 +59,24 @@ function parseDate(value: string): number {
   return new Date(value).getTime();
 }
 
+function dateKey(value: string): string {
+  const date = new Date(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function dateLabel(value: string): string {
+  return new Date(value).toLocaleDateString(undefined, {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function timeShort(value: string): string {
+  return new Date(value).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
 function formatRate(value: number | undefined): string {
   if (value === undefined) {
     return "-";
@@ -154,15 +172,59 @@ export function AdminHomeScreen({ user, view, onLogout }: AdminHomeScreenProps) 
     setOpenMemberMenuId(null);
   }, [view]);
 
-  const currentSession = useMemo(() => {
+  const currentActiveSessions = useMemo(() => {
     const now = Date.now();
-    return sessions.find((s) => parseDate(s.startsAt) <= now && parseDate(s.endsAt) >= now && s.status === "ACTIVE") || null;
+    return sessions.filter((s) => parseDate(s.startsAt) <= now && parseDate(s.endsAt) >= now && s.status === "ACTIVE");
   }, [sessions]);
 
   const incomingSessions = useMemo(
     () => sessions.filter((s) => parseDate(s.startsAt) > Date.now()).sort((a, b) => parseDate(a.startsAt) - parseDate(b.startsAt)).slice(0, 8),
     [sessions],
   );
+
+  const groupedIncomingSessions = useMemo(() => {
+    const map = new Map<string, { label: string; items: AdminSessionListItem[] }>();
+    incomingSessions.forEach((session) => {
+      const key = dateKey(session.startsAt);
+      if (!map.has(key)) {
+        map.set(key, { label: dateLabel(session.startsAt), items: [] });
+      }
+      map.get(key)?.items.push(session);
+    });
+    return Array.from(map.entries()).map(([key, value]) => {
+      const starts = value.items.map((s) => parseDate(s.startsAt));
+      const ends = value.items.map((s) => parseDate(s.endsAt));
+      return {
+        key,
+        label: value.label,
+        timeStart: new Date(Math.min(...starts)).toISOString(),
+        timeEnd: new Date(Math.max(...ends)).toISOString(),
+        items: value.items,
+      };
+    });
+  }, [incomingSessions]);
+
+  const groupedCurrentSessions = useMemo(() => {
+    const map = new Map<string, { label: string; items: AdminSessionListItem[] }>();
+    currentActiveSessions.forEach((session) => {
+      const key = dateKey(session.startsAt);
+      if (!map.has(key)) {
+        map.set(key, { label: dateLabel(session.startsAt), items: [] });
+      }
+      map.get(key)?.items.push(session);
+    });
+    return Array.from(map.entries()).map(([key, value]) => {
+      const starts = value.items.map((s) => parseDate(s.startsAt));
+      const ends = value.items.map((s) => parseDate(s.endsAt));
+      return {
+        key,
+        label: value.label,
+        timeStart: new Date(Math.min(...starts)).toISOString(),
+        timeEnd: new Date(Math.max(...ends)).toISOString(),
+        items: value.items,
+      };
+    });
+  }, [currentActiveSessions]);
 
   const filteredSessions = useMemo(() => {
     const query = sessionsQuery.trim().toLowerCase();
@@ -171,6 +233,28 @@ export function AdminHomeScreen({ user, view, onLogout }: AdminHomeScreenProps) 
     }
     return sessions.filter((session) => `${session.eventName} ${session.status}`.toLowerCase().includes(query));
   }, [sessions, sessionsQuery]);
+
+  const groupedFilteredSessions = useMemo(() => {
+    const map = new Map<string, { label: string; items: AdminSessionListItem[] }>();
+    filteredSessions.forEach((session) => {
+      const key = dateKey(session.startsAt);
+      if (!map.has(key)) {
+        map.set(key, { label: dateLabel(session.startsAt), items: [] });
+      }
+      map.get(key)?.items.push(session);
+    });
+    return Array.from(map.entries()).map(([key, value]) => {
+      const starts = value.items.map((s) => parseDate(s.startsAt));
+      const ends = value.items.map((s) => parseDate(s.endsAt));
+      return {
+        key,
+        label: value.label,
+        timeStart: new Date(Math.min(...starts)).toISOString(),
+        timeEnd: new Date(Math.max(...ends)).toISOString(),
+        items: value.items,
+      };
+    });
+  }, [filteredSessions]);
 
   function closeAllMenus() {
     setOpenSessionMenuId(null);
@@ -505,38 +589,57 @@ export function AdminHomeScreen({ user, view, onLogout }: AdminHomeScreenProps) 
                   <View style={styles.summaryChip}>
                     <MaterialCommunityIcons name="play-circle-outline" size={16} style={styles.summaryIcon} />
                     <Text style={styles.summaryLabel}>Active Now</Text>
-                    <Text style={styles.summaryValue}>{currentSession ? 1 : 0}</Text>
+                    <Text style={styles.summaryValue}>{currentActiveSessions.length}</Text>
                   </View>
                 </View>
               </Card>
               <Card>
                 <View style={styles.titleWithIcon}><MaterialCommunityIcons name="clock-outline" size={18} style={styles.sectionIcon} /><Text style={styles.sectionTitle}>Current Session</Text></View>
-                {!currentSession ? <Text style={styles.metaMuted}>No active session right now.</Text> : null}
-                {currentSession ? (
-                  <>
-                    <Text style={styles.titleStrong}>{currentSession.eventName}</Text>
-                    <Text style={styles.metaStrong}>{formatDateTime(currentSession.startsAt)} - {formatDateTime(currentSession.endsAt)}</Text>
-                    <View style={styles.inlineRow}>
-                      <View style={styles.metricPill}>
-                        <Text style={styles.metricPillLabel}>Check-ins</Text>
-                        <Text style={styles.metricPillValue}>{sessionMetrics[currentSession.id]?.totalCheckIns ?? "-"}</Text>
+                {!groupedCurrentSessions.length ? <Text style={styles.metaMuted}>No active session right now.</Text> : null}
+                {groupedCurrentSessions.map((group) => (
+                  <View key={group.key} style={styles.currentSessionPanel}>
+                    <View style={styles.incomingHead}>
+                      <Text style={styles.currentSessionTitle}>{group.label}</Text>
+                      <Text style={styles.currentSessionTime}>{timeShort(group.timeStart)} - {timeShort(group.timeEnd)}</Text>
+                    </View>
+                    {group.items.map((item) => (
+                      <View key={item.id} style={styles.incomingRow}>
+                        <View style={[styles.typeDot, item.mandatory ? styles.typeDotMandatory : styles.typeDotOptional]} />
+                        <Text style={styles.incomingEvent}>{item.eventName}</Text>
                       </View>
-                      <View style={styles.metricPill}>
-                        <Text style={styles.metricPillLabel}>Rate</Text>
-                        <Text style={styles.metricPillValue}>{formatRate(sessionMetrics[currentSession.id]?.checkInRatePercent)}</Text>
+                    ))}
+                    <View style={styles.currentSessionMetrics}>
+                      <View style={styles.currentSessionMetricCard}>
+                        <Text style={styles.currentSessionMetricLabel}>Check-ins</Text>
+                        <Text style={styles.currentSessionMetricValue}>
+                          {group.items.reduce((sum, item) => sum + (sessionMetrics[item.id]?.totalCheckIns ?? 0), 0)}
+                        </Text>
+                      </View>
+                      <View style={styles.currentSessionMetricCard}>
+                        <Text style={styles.currentSessionMetricLabel}>Rate</Text>
+                        <Text style={styles.currentSessionMetricValue}>
+                          {formatRate(group.items.reduce((sum, item) => sum + (sessionMetrics[item.id]?.checkInRatePercent ?? 0), 0) / Math.max(1, group.items.length))}
+                        </Text>
                       </View>
                     </View>
-                  </>
-                ) : null}
+                  </View>
+                ))}
               </Card>
               <Card>
                 <View style={styles.titleWithIcon}><MaterialCommunityIcons name="calendar-arrow-right" size={18} style={styles.sectionIcon} /><Text style={styles.sectionTitle}>Incoming Sessions</Text></View>
-                {!incomingSessions.length ? <Text style={styles.metaMuted}>No incoming session scheduled.</Text> : null}
-                {incomingSessions.map((item) => (
-                  <View key={item.id} style={styles.incomingItem}>
-                    <Text style={styles.incomingTitle}>{item.eventName}</Text>
-                    <Text style={styles.metaStrong}>{formatDateTime(item.startsAt)}</Text>
-                    <Text style={styles.meta}>Type: {item.mandatory ? "Mandatory" : "Optional"} | {item.status}</Text>
+                {!groupedIncomingSessions.length ? <Text style={styles.metaMuted}>No incoming session scheduled.</Text> : null}
+                {groupedIncomingSessions.map((group) => (
+                  <View key={group.key} style={styles.incomingItem}>
+                    <View style={styles.incomingHead}>
+                      <Text style={styles.incomingTitle}>{group.label}</Text>
+                      <Text style={styles.incomingRange}>{timeShort(group.timeStart)} - {timeShort(group.timeEnd)}</Text>
+                    </View>
+                    {group.items.map((item) => (
+                      <View key={item.id} style={styles.incomingRow}>
+                        <View style={[styles.typeDot, item.mandatory ? styles.typeDotMandatory : styles.typeDotOptional]} />
+                        <Text style={styles.incomingEvent}>{item.eventName}</Text>
+                      </View>
+                    ))}
                   </View>
                 ))}
               </Card>
@@ -558,8 +661,8 @@ export function AdminHomeScreen({ user, view, onLogout }: AdminHomeScreenProps) 
         {loading ? <ListSkeleton rows={8} /> : null}
         <View style={styles.interactionLayer}>
           <FlatList
-            data={sessionListOpen ? filteredSessions : []}
-            keyExtractor={(item) => item.id}
+            data={sessionListOpen ? groupedFilteredSessions : []}
+            keyExtractor={(item) => item.key}
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={closeAllMenus}
@@ -602,38 +705,43 @@ export function AdminHomeScreen({ user, view, onLogout }: AdminHomeScreenProps) 
             </>
           }
             ListEmptyComponent={sessionListOpen ? <Text style={styles.meta}>No sessions found.</Text> : null}
-            renderItem={({ item }) => (
-            <View style={[styles.rowItem, openSessionMenuId === item.id && styles.rowItemOverlay]}>
-              <View style={styles.rowHead}>
-                <Pressable style={styles.rowMain} onPress={() => toggleSessionExpanded(item.id)}>
-                  <Text style={styles.titleStrong}>{item.eventName}</Text>
-                  <View style={styles.rowSubtitleWithIcon}>
-                    <MaterialCommunityIcons name="clock-outline" size={14} style={styles.rowMetaIcon} />
-                    <Text style={styles.rowSubtitleText}>{formatDateTime(item.startsAt)} - {formatDateTime(item.endsAt)}</Text>
-                  </View>
-                </Pressable>
-                <View style={styles.rowActionsTop}>
-                  <View style={[styles.rowBadge, item.status === "ACTIVE" ? styles.badgeActive : styles.badgeNeutral]}>
-                    <Text style={[styles.rowBadgeText, item.status === "ACTIVE" ? styles.badgeActiveText : styles.badgeNeutralText]}>{item.status}</Text>
-                  </View>
-                  <Pressable style={styles.moreButton} onPress={() => setOpenSessionMenuId((prev) => (prev === item.id ? null : item.id))}><Text style={styles.moreButtonText}>...</Text></Pressable>
+            renderItem={({ item: group }) => (
+              <View style={styles.incomingItem}>
+                <View style={styles.incomingHead}>
+                  <Text style={styles.incomingTitle}>{group.label}</Text>
+                  <Text style={styles.incomingRange}>{timeShort(group.timeStart)} - {timeShort(group.timeEnd)}</Text>
                 </View>
+                {group.items.map((item) => (
+                  <View key={item.id} style={[styles.rowItem, openSessionMenuId === item.id && styles.rowItemOverlay]}>
+                    <View style={styles.rowHead}>
+                      <Pressable style={styles.rowMain} onPress={() => toggleSessionExpanded(item.id)}>
+                        <Text style={styles.titleStrong}>{item.eventName}</Text>
+                        <View style={styles.rowSubtitleWithIcon}>
+                          <MaterialCommunityIcons name="clock-outline" size={14} style={styles.rowMetaIcon} />
+                          <Text style={styles.rowSubtitleText}>{timeShort(item.startsAt)} - {timeShort(item.endsAt)}</Text>
+                        </View>
+                      </Pressable>
+                      <View style={styles.rowActionsTop}>
+                        <View style={[styles.typeDot, item.mandatory ? styles.typeDotMandatory : styles.typeDotOptional]} />
+                        <Pressable style={styles.moreButton} onPress={() => setOpenSessionMenuId((prev) => (prev === item.id ? null : item.id))}><Text style={styles.moreButtonText}>...</Text></Pressable>
+                      </View>
+                    </View>
+                    {openSessionMenuId === item.id ? (
+                      <View style={styles.menuPanelInline}>
+                        <Pressable style={styles.menuItem} onPress={() => { toggleSessionExpanded(item.id); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name={expandedSessionIds[item.id] ? "chevron-up" : "chevron-down"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{expandedSessionIds[item.id] ? "Hide Details" : "Show Details"}</Text></View></Pressable>
+                        <Pressable style={styles.menuItem} onPress={() => { startEditSession(item); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name="pencil-outline" size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>Edit</Text></View></Pressable>
+                        {item.status !== "CLOSED" ? <Pressable style={styles.menuItem} onPress={() => { void startOrCloseSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name={item.status === "ACTIVE" ? "stop-circle-outline" : "play-circle-outline"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{item.status === "ACTIVE" ? "Close Session" : "Start Session"}</Text></View></Pressable> : null}
+                        <Pressable style={styles.menuItem} onPress={() => { void deleteSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name="delete-outline" size={14} style={styles.menuIconDanger} /><Text style={styles.menuItemDanger}>Delete</Text></View></Pressable>
+                      </View>
+                    ) : null}
+                    {expandedSessionIds[item.id] ? (
+                      <View style={styles.expandBody}>
+                        <Text style={styles.meta}>Session ID: {item.id}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
               </View>
-              {openSessionMenuId === item.id ? (
-                <View style={styles.menuPanelInline}>
-                  <Pressable style={styles.menuItem} onPress={() => { toggleSessionExpanded(item.id); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name={expandedSessionIds[item.id] ? "chevron-up" : "chevron-down"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{expandedSessionIds[item.id] ? "Hide Details" : "Show Details"}</Text></View></Pressable>
-                  <Pressable style={styles.menuItem} onPress={() => { startEditSession(item); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name="pencil-outline" size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>Edit</Text></View></Pressable>
-                  {item.status !== "CLOSED" ? <Pressable style={styles.menuItem} onPress={() => { void startOrCloseSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name={item.status === "ACTIVE" ? "stop-circle-outline" : "play-circle-outline"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{item.status === "ACTIVE" ? "Close Session" : "Start Session"}</Text></View></Pressable> : null}
-                  <Pressable style={styles.menuItem} onPress={() => { void deleteSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name="delete-outline" size={14} style={styles.menuIconDanger} /><Text style={styles.menuItemDanger}>Delete</Text></View></Pressable>
-                </View>
-              ) : null}
-              {expandedSessionIds[item.id] ? (
-                <View style={styles.expandBody}>
-                  <Text style={styles.meta}>Type: {item.mandatory ? "Mandatory" : "Optional"}</Text>
-                  <Text style={styles.meta}>Session ID: {item.id}</Text>
-                </View>
-              ) : null}
-            </View>
             )}
           />
         </View>
@@ -820,11 +928,64 @@ const styles = StyleSheet.create({
   summaryLabel: { color: "#5b7092", fontSize: 11, fontWeight: "700" },
   summaryValue: { marginTop: 3, color: "#12335f", fontSize: 18, fontWeight: "800" },
   inlineRow: { flexDirection: "row", gap: 8, alignItems: "center", marginTop: 4, flexWrap: "wrap" },
+  currentSessionPanel: {
+    borderWidth: 1,
+    borderColor: "#c6d9f5",
+    borderRadius: 12,
+    backgroundColor: "#f7fbff",
+    padding: 10,
+  },
+  currentSessionTitle: {
+    color: "#102d57",
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: -0.2,
+  },
+  currentSessionTime: {
+    marginTop: 4,
+    color: "#2f4f78",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  currentSessionMetrics: {
+    marginTop: 10,
+    flexDirection: "row",
+    gap: 8,
+  },
+  currentSessionMetricCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#d2def2",
+    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  currentSessionMetricLabel: {
+    color: "#587095",
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  currentSessionMetricValue: {
+    marginTop: 3,
+    color: "#143562",
+    fontSize: 17,
+    fontWeight: "900",
+  },
   metricPill: { borderWidth: 1, borderColor: "#d1def2", borderRadius: 999, backgroundColor: "#f4f8ff", paddingHorizontal: 10, paddingVertical: 6 },
   metricPillLabel: { color: "#5b7092", fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.3 },
   metricPillValue: { color: "#12335f", fontSize: 13, fontWeight: "800", marginTop: 1 },
   incomingItem: { borderWidth: 1, borderColor: "#d7e3f5", borderRadius: 10, backgroundColor: "#f8fbff", padding: 10, marginTop: 8 },
   incomingTitle: { color: "#183a72", fontSize: 15, fontWeight: "800" },
+  incomingHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+  incomingRange: { color: "#2f4f78", fontSize: 12, fontWeight: "700" },
+  incomingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  incomingEvent: { color: "#355070", fontSize: 13, fontWeight: "700" },
+  typeDot: { width: 9, height: 9, borderRadius: 999 },
+  typeDotMandatory: { backgroundColor: "#e2a93a" },
+  typeDotOptional: { backgroundColor: "#43a26b" },
   actionChip: { borderWidth: 1, borderColor: "#b8cbe8", borderRadius: 10, backgroundColor: "#ffffff", minHeight: 40, minWidth: 90, paddingHorizontal: 10, alignItems: "center", justifyContent: "center" },
   actionChipActive: { borderColor: "#a4dfc1", backgroundColor: "#d4f6e4" },
   actionChipText: { color: "#2e476c", fontWeight: "700" },
