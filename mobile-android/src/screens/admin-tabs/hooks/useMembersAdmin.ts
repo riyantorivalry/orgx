@@ -101,6 +101,7 @@ export function useMembersAdmin({ openConfirm, setError, setSuccess }: UseMember
       } else {
         await adminApi.createMember(payload);
         setSuccess("Member created.");
+        setMemberCreateOpen(false);
       }
       resetMemberForm();
       await refreshMembers();

@@ -34,7 +34,6 @@ type AdminMembersTabProps = {
   onToggleMemberCreate: () => void;
   onToggleMemberList: () => void;
   onChangeMembersQuery: (value: string) => void;
-  onSearchMembers: () => Promise<void>;
   onMemberFormChange: (value: MemberFormState) => void;
   onSaveMember: () => Promise<void>;
   onCancelMemberEdit: () => void;
@@ -62,7 +61,6 @@ export function AdminMembersTab({
   onToggleMemberCreate,
   onToggleMemberList,
   onChangeMembersQuery,
-  onSearchMembers,
   onMemberFormChange,
   onSaveMember,
   onCancelMemberEdit,
@@ -136,12 +134,7 @@ export function AdminMembersTab({
                       placeholder="Search by name or code"
                       placeholderTextColor="#7a879a"
                       style={styles.searchInput}
-                      returnKeyType="search"
-                      onSubmitEditing={() => void onSearchMembers()}
                     />
-                    <Pressable style={styles.searchButton} onPress={() => void onSearchMembers()}>
-                      <Text style={styles.searchButtonText}>Search</Text>
-                    </Pressable>
                   </View>
                 ) : null}
               </Card>
@@ -152,16 +145,16 @@ export function AdminMembersTab({
             <View style={[styles.rowItem, openMemberMenuId === item.id && styles.rowItemOverlay]}>
               <View style={styles.rowHead}>
                 <Pressable style={styles.rowMain} onPress={() => onToggleMemberExpanded(item.id)}>
-                  <Text style={styles.titleStrong}>{item.fullName}</Text>
+                  <View style={styles.rowTitleWithMarker}>
+                    <View style={[styles.typeDot, item.active ? styles.memberStatusDotActive : styles.memberStatusDotInactive]} />
+                    <Text style={styles.titleStrong}>{item.fullName}</Text>
+                  </View>
                   <View style={styles.rowSubtitleWithIcon}>
-                    <MaterialCommunityIcons name="badge-account-horizontal-outline" size={14} style={styles.rowMetaIcon} />
-                    <Text style={styles.rowSubtitleText}>Code: {item.memberCode}</Text>
+                    <MaterialCommunityIcons name="phone-outline" size={14} style={styles.rowMetaIcon} />
+                    <Text style={styles.rowSubtitleText}>Mobile: {item.mobileNumber || "-"}</Text>
                   </View>
                 </Pressable>
                 <View style={styles.rowActionsTop}>
-                  <View style={[styles.rowBadge, item.active ? styles.badgeActive : styles.badgeNeutral]}>
-                    <Text style={[styles.rowBadgeText, item.active ? styles.badgeActiveText : styles.badgeNeutralText]}>{item.active ? "ACTIVE" : "INACTIVE"}</Text>
-                  </View>
                   <Pressable style={styles.moreButton} onPress={() => onToggleMemberMenu(item.id)}>
                     <Text style={styles.moreButtonText}>...</Text>
                   </Pressable>
@@ -223,11 +216,26 @@ export function AdminMembersTab({
               ) : null}
               {expandedMemberIds[item.id] ? (
                 <View style={styles.expandBody}>
-                  <Text style={styles.meta}>Email: {item.email || "-"}</Text>
-                  <Text style={styles.meta}>Mobile: {item.mobileNumber || "-"}</Text>
-                  <Text style={styles.meta}>Blood: {item.bloodType || "-"}</Text>
-                  <Text style={styles.meta}>DOB: {item.dob || "-"}</Text>
-                  <Text style={styles.meta}>Address: {item.address || "-"}</Text>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Email</Text>
+                    <Text style={styles.detailValue}>{item.email || "-"}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Code</Text>
+                    <Text style={styles.detailValue}>{item.memberCode || "-"}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Blood</Text>
+                    <Text style={styles.detailValue}>{item.bloodType || "-"}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>DOB</Text>
+                    <Text style={styles.detailValue}>{item.dob || "-"}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Address</Text>
+                    <Text style={styles.detailValue}>{item.address || "-"}</Text>
+                  </View>
                 </View>
               ) : null}
             </View>

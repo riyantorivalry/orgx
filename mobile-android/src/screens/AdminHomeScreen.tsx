@@ -216,8 +216,10 @@ export function AdminHomeScreen({ user, view, onLogout }: AdminHomeScreenProps) 
         openMemberMenuId={membersAdmin.openMemberMenuId}
         onToggleMemberCreate={() => membersAdmin.setMemberCreateOpen((prev) => !prev)}
         onToggleMemberList={() => membersAdmin.setMemberListOpen((prev) => !prev)}
-        onChangeMembersQuery={membersAdmin.setMembersQuery}
-        onSearchMembers={() => membersAdmin.refreshMembers(membersAdmin.membersQuery)}
+        onChangeMembersQuery={(value) => {
+          membersAdmin.setMembersQuery(value);
+          void membersAdmin.refreshMembers(value);
+        }}
         onMemberFormChange={membersAdmin.setMemberForm}
         onSaveMember={membersAdmin.saveMember}
         onCancelMemberEdit={membersAdmin.resetMemberForm}
