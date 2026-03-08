@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { theme } from "./src/lib/theme";
 import { AdminHomeScreen } from "./src/screens/AdminHomeScreen";
@@ -30,7 +30,7 @@ export default function App() {
         <Text style={styles.subtitle}>{adminUser ? "Admin operations" : "Admin login required"}</Text>
       </View>
 
-      <View style={styles.body}>
+      <View style={[styles.body, adminUser && styles.bodyWithNav]}>
         {!adminUser ? <AdminLoginScreen onLoggedIn={setAdminUser} /> : <AdminHomeScreen user={adminUser} view={tab} />}
       </View>
 
@@ -65,6 +65,12 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: theme.bg,
+    ...Platform.select({
+      web: {
+        height: "100vh",
+        overflow: "hidden",
+      },
+    }),
   },
   header: {
     borderBottomWidth: 1,
@@ -86,6 +92,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   bottomNav: {
+    ...Platform.select({
+      web: {
+        position: "fixed",
+      },
+      default: {
+        position: "absolute",
+      },
+    }),
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: "row",
     gap: 8,
     paddingHorizontal: 14,
@@ -126,5 +143,8 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
+  },
+  bodyWithNav: {
+    paddingBottom: 82,
   },
 });
