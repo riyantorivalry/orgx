@@ -29,11 +29,21 @@ export async function requestJson<T>(path: string, init: RequestOptions = {}): P
       throw new Error(text || `Request failed (${response.status})`);
     }
 
-    if (response.status === 204) {
+    if (response.status === 204 || response.status === 205) {
       return undefined as T;
     }
 
-    return (await response.json()) as T;
+    const raw = await response.text();
+    if (!raw.trim()) {
+      return undefined as T;
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      return JSON.parse(raw) as T;
+    }
+
+    return raw as T;
   } finally {
     clearTimeout(timeoutId);
   }

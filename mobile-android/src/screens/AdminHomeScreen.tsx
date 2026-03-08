@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Card } from "../components/Card";
 import { ListSkeleton } from "../components/ListSkeleton";
@@ -110,23 +110,13 @@ function memberToForm(member: AdminMember): MemberFormState {
   };
 }
 
-async function confirmAction(title: string, message: string): Promise<boolean> {
-  const webConfirm = (globalThis as { confirm?: (value?: string) => boolean }).confirm;
-  if (typeof webConfirm === "function") {
-    return webConfirm(message);
-  }
-  return new Promise((resolve) => {
-    Alert.alert(
-      title,
-      message,
-      [
-        { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-        { text: "Continue", style: "destructive", onPress: () => resolve(true) },
-      ],
-      { cancelable: true, onDismiss: () => resolve(false) },
-    );
-  });
-}
+type ConfirmDialogState = {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  tone: "primary" | "danger";
+  resolve: (value: boolean) => void;
+};
 
 export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
   const [sessions, setSessions] = useState<AdminSessionListItem[]>([]);
@@ -152,6 +142,7 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
   const [expandedMemberIds, setExpandedMemberIds] = useState<Record<string, boolean>>({});
   const [openSessionMenuId, setOpenSessionMenuId] = useState<string | null>(null);
   const [openMemberMenuId, setOpenMemberMenuId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
 
   useEffect(() => {
     void loadAll();
@@ -180,11 +171,22 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
     return sessions.filter((session) => `${session.eventName} ${session.status}`.toLowerCase().includes(query));
   }, [sessions, sessionsQuery]);
 
-  const hasOpenMenu = Boolean(openSessionMenuId || openMemberMenuId);
-
   function closeAllMenus() {
     setOpenSessionMenuId(null);
     setOpenMemberMenuId(null);
+  }
+
+  function openConfirm(options: Omit<ConfirmDialogState, "resolve">): Promise<boolean> {
+    return new Promise((resolve) => {
+      setConfirmDialog({ ...options, resolve });
+    });
+  }
+
+  function closeConfirm(result: boolean) {
+    if (confirmDialog) {
+      confirmDialog.resolve(result);
+      setConfirmDialog(null);
+    }
   }
 
   async function loadAll() {
@@ -306,7 +308,12 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
 
   async function startOrCloseSession(session: AdminSessionListItem) {
     const isActive = session.status === "ACTIVE";
-    const ok = await confirmAction(`${isActive ? "Close" : "Start"} Session`, `Do you want to ${isActive ? "close" : "start"} "${session.eventName}"?`);
+    const ok = await openConfirm({
+      title: `${isActive ? "Close" : "Start"} Session`,
+      message: `Do you want to ${isActive ? "close" : "start"} "${session.eventName}"?`,
+      confirmLabel: isActive ? "Close Session" : "Start Session",
+      tone: isActive ? "danger" : "primary",
+    });
     if (!ok) {
       return;
     }
@@ -329,7 +336,12 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
   }
 
   async function deleteSession(session: AdminSessionListItem) {
-    const ok = await confirmAction("Delete Session", `Delete "${session.eventName}"? This action cannot be undone.`);
+    const ok = await openConfirm({
+      title: "Delete Session",
+      message: `Delete "${session.eventName}"? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
     if (!ok) {
       return;
     }
@@ -378,7 +390,12 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
 
   async function toggleMemberActive(member: AdminMember) {
     const nextActive = !member.active;
-    const ok = await confirmAction(`${nextActive ? "Activate" : "Deactivate"} Member`, `Do you want to ${nextActive ? "activate" : "deactivate"} ${member.fullName}?`);
+    const ok = await openConfirm({
+      title: `${nextActive ? "Activate" : "Deactivate"} Member`,
+      message: `Do you want to ${nextActive ? "activate" : "deactivate"} ${member.fullName}?`,
+      confirmLabel: nextActive ? "Activate" : "Deactivate",
+      tone: nextActive ? "primary" : "danger",
+    });
     if (!ok) {
       return;
     }
@@ -405,7 +422,12 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
   }
 
   async function deleteMember(member: AdminMember) {
-    const ok = await confirmAction("Delete Member", `Delete ${member.fullName}? This action cannot be undone.`);
+    const ok = await openConfirm({
+      title: "Delete Member",
+      message: `Delete ${member.fullName}? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
     if (!ok) {
       return;
     }
@@ -425,6 +447,35 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
       setMemberSaving(false);
     }
   }
+
+  const confirmDialogNode = confirmDialog ? (
+    <Modal transparent visible animationType="fade" onRequestClose={() => closeConfirm(false)}>
+      <Pressable style={styles.dialogBackdrop} onPress={() => closeConfirm(false)}>
+        <Pressable style={styles.dialogCard} onPress={() => undefined}>
+          <View style={styles.dialogIconWrap}>
+            <MaterialCommunityIcons
+              name={confirmDialog.tone === "danger" ? "alert-circle-outline" : "help-circle-outline"}
+              size={24}
+              style={[styles.dialogIcon, confirmDialog.tone === "danger" ? styles.dialogIconDanger : styles.dialogIconPrimary]}
+            />
+          </View>
+          <Text style={styles.dialogTitle}>{confirmDialog.title}</Text>
+          <Text style={styles.dialogMessage}>{confirmDialog.message}</Text>
+          <View style={styles.dialogActions}>
+            <Pressable style={styles.dialogCancelButton} onPress={() => closeConfirm(false)}>
+              <Text style={styles.dialogCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.dialogConfirmButton, confirmDialog.tone === "danger" ? styles.dialogConfirmDanger : styles.dialogConfirmPrimary]}
+              onPress={() => closeConfirm(true)}
+            >
+              <Text style={styles.dialogConfirmText}>{confirmDialog.confirmLabel}</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  ) : null;
 
   if (view === "home") {
     return (
@@ -493,6 +544,7 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
           ListEmptyComponent={null}
           renderItem={() => null}
         />
+        {confirmDialogNode}
       </Screen>
     );
   }
@@ -504,7 +556,6 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
         {success ? <StatusBanner tone="success" message={success} /> : null}
         {loading ? <ListSkeleton rows={8} /> : null}
         <View style={styles.interactionLayer}>
-          {hasOpenMenu ? <Pressable style={styles.menuBackdrop} onPress={closeAllMenus} /> : null}
           <FlatList
             data={sessionListOpen ? filteredSessions : []}
             keyExtractor={(item) => item.id}
@@ -585,6 +636,7 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
             )}
           />
         </View>
+        {confirmDialogNode}
       </Screen>
     );
   }
@@ -595,7 +647,6 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
       {success ? <StatusBanner tone="success" message={success} /> : null}
       {loading ? <ListSkeleton rows={8} /> : null}
       <View style={styles.interactionLayer}>
-        {hasOpenMenu ? <Pressable style={styles.menuBackdrop} onPress={closeAllMenus} /> : null}
         <FlatList
           data={memberListOpen ? members : []}
           keyExtractor={(item) => item.id}
@@ -683,13 +734,13 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
           )}
         />
       </View>
+      {confirmDialogNode}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   interactionLayer: { flex: 1, position: "relative" },
-  menuBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 40, backgroundColor: "transparent" },
   listContent: { paddingBottom: 12 },
   titleWithIcon: { flexDirection: "row", alignItems: "center", gap: 6 },
   sectionIcon: { color: "#2f4f7f" },
@@ -717,13 +768,25 @@ const styles = StyleSheet.create({
   badgeNeutralText: { color: "#3f5475" },
   moreButton: { width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderColor: "#c7d7f2", backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" },
   moreButtonText: { color: "#2e476c", fontWeight: "900", marginTop: -4, fontSize: 18, lineHeight: 18 },
-  menuPanelInline: { marginTop: 8, borderWidth: 1, borderColor: "#d2dff2", borderRadius: 10, backgroundColor: "#ffffff", overflow: "hidden" },
-  menuItem: { paddingHorizontal: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: "#edf2fb" },
+  menuPanelInline: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#d2dff2",
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    overflow: "hidden",
+    shadowColor: "#1a3c73",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  menuItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#edf2fb" },
   menuItemRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   menuIcon: { color: "#4f6384" },
   menuIconDanger: { color: "#9d2424" },
-  menuItemText: { color: "#2e476c", fontSize: 12, fontWeight: "700" },
-  menuItemDanger: { color: "#9d2424", fontSize: 12, fontWeight: "700" },
+  menuItemText: { color: "#2a4468", fontSize: 12, fontWeight: "700" },
+  menuItemDanger: { color: "#9d2424", fontSize: 12, fontWeight: "800" },
   expandBody: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#dbe5f4" },
   summaryRow: { flexDirection: "row", gap: 8 },
   summaryChip: { flex: 1, borderWidth: 1, borderColor: "#d2dff2", borderRadius: 10, padding: 8, backgroundColor: "#f8fbff" },
@@ -748,4 +811,94 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, borderWidth: 1, borderColor: "#a8b8d3", borderRadius: 10, backgroundColor: "#fff", color: theme.ink, paddingVertical: 10, paddingHorizontal: 10, fontSize: 14 },
   searchButton: { minHeight: 40, minWidth: 72, borderRadius: 10, borderWidth: 1, borderColor: theme.primary, backgroundColor: theme.primary, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 },
   searchButtonText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  dialogBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(11, 26, 47, 0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  dialogCard: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#c8d7ef",
+    backgroundColor: "#ffffff",
+    padding: 16,
+  },
+  dialogIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f2f7ff",
+    marginBottom: 10,
+  },
+  dialogIcon: {
+    color: "#35517a",
+  },
+  dialogIconPrimary: {
+    color: "#1f4f9a",
+  },
+  dialogIconDanger: {
+    color: "#b12f2f",
+  },
+  dialogTitle: {
+    color: "#132f57",
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  dialogMessage: {
+    marginTop: 8,
+    color: "#395474",
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  dialogActions: {
+    marginTop: 16,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  dialogCancelButton: {
+    minHeight: 40,
+    minWidth: 84,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#c0d0e8",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  dialogCancelText: {
+    color: "#2e476c",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  dialogConfirmButton: {
+    minHeight: 40,
+    minWidth: 110,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  dialogConfirmPrimary: {
+    borderColor: "#1f4f9a",
+    backgroundColor: "#1f4f9a",
+  },
+  dialogConfirmDanger: {
+    borderColor: "#b12f2f",
+    backgroundColor: "#b12f2f",
+  },
+  dialogConfirmText: {
+    color: "#ffffff",
+    fontWeight: "800",
+    fontSize: 13,
+  },
 });
