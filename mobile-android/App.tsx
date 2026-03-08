@@ -4,33 +4,44 @@ import { StatusBar } from "expo-status-bar";
 import { theme } from "./src/lib/theme";
 import { AdminHomeScreen } from "./src/screens/AdminHomeScreen";
 import { AdminLoginScreen } from "./src/screens/AdminLoginScreen";
-import { MemberCheckInScreen } from "./src/screens/MemberCheckInScreen";
+import { authApi } from "./src/services/authApi";
 import type { AdminAuthUser } from "./src/types/admin";
 
-type RootTab = "checkin" | "admin";
+type AdminTab = "home" | "sessions" | "members";
 
 export default function App() {
-  const [tab, setTab] = useState<RootTab>("checkin");
   const [adminUser, setAdminUser] = useState<AdminAuthUser | null>(null);
+  const [tab, setTab] = useState<AdminTab>("home");
+
+  async function logout() {
+    try {
+      await authApi.logout();
+    } finally {
+      setAdminUser(null);
+      setTab("home");
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
       <View style={styles.header}>
         <Text style={styles.brand}>ORGX Attendance</Text>
-        <Text style={styles.subtitle}>{tab === "checkin" ? "Member self check-in" : "Admin operations"}</Text>
+        <Text style={styles.subtitle}>{adminUser ? "Admin operations" : "Admin login required"}</Text>
       </View>
 
       <View style={styles.body}>
-        {tab === "checkin" ? <MemberCheckInScreen /> : null}
-        {tab === "admin" && !adminUser ? <AdminLoginScreen onLoggedIn={setAdminUser} /> : null}
-        {tab === "admin" && adminUser ? <AdminHomeScreen user={adminUser} onLogout={() => setAdminUser(null)} /> : null}
+        {!adminUser ? <AdminLoginScreen onLoggedIn={setAdminUser} /> : <AdminHomeScreen user={adminUser} view={tab} />}
       </View>
 
-      <View style={styles.bottomNav}>
-        <TabButton label="Check-In" active={tab === "checkin"} onPress={() => setTab("checkin")} />
-        <TabButton label="Admin" active={tab === "admin"} onPress={() => setTab("admin")} />
-      </View>
+      {adminUser ? (
+        <View style={styles.bottomNav}>
+          <TabButton label="Home" active={tab === "home"} onPress={() => setTab("home")} />
+          <TabButton label="Sessions" active={tab === "sessions"} onPress={() => setTab("sessions")} />
+          <TabButton label="Members" active={tab === "members"} onPress={() => setTab("members")} />
+          <TabButton label="Logout" active={false} onPress={() => void logout()} danger />
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -39,12 +50,13 @@ type TabButtonProps = {
   label: string;
   active: boolean;
   onPress: () => void;
+  danger?: boolean;
 };
 
-function TabButton({ label, active, onPress }: TabButtonProps) {
+function TabButton({ label, active, onPress, danger }: TabButtonProps) {
   return (
-    <Pressable onPress={onPress} style={[styles.tabButton, active && styles.tabButtonActive]} hitSlop={6}>
-      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+    <Pressable onPress={onPress} style={[styles.tabButton, active && styles.tabButtonActive, danger && styles.tabButtonDanger]} hitSlop={6}>
+      <Text style={[styles.tabText, active && styles.tabTextActive, danger && styles.tabTextDanger]}>{label}</Text>
     </Pressable>
   );
 }
@@ -75,7 +87,7 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 12,
@@ -97,12 +109,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.primary,
     borderColor: theme.primaryStrong,
   },
+  tabButtonDanger: {
+    backgroundColor: "#fff1f1",
+    borderColor: "#f0bebe",
+  },
   tabText: {
     color: "#1f3f74",
     fontWeight: "800",
+    fontSize: 12,
   },
   tabTextActive: {
     color: "#ffffff",
+  },
+  tabTextDanger: {
+    color: "#9d2424",
   },
   body: {
     flex: 1,

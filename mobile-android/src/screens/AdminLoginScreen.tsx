@@ -36,15 +36,12 @@ export function AdminLoginScreen({ onLoggedIn }: AdminLoginScreenProps) {
   };
 
   return (
-    <Screen title="Admin Login" subtitle="Sign in to manage sessions, members, and attendance.">
+    <Screen title="Login" subtitle="Sign in to manage sessions, members, and attendance.">
       <Card>
         {error ? <StatusBanner tone="error" message={error} /> : null}
         <TextField label="Username" value={username} onChangeText={setUsername} placeholder="admin" />
         <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry />
         <PrimaryButton title={loading ? "Signing In..." : "Sign In"} onPress={() => void onSubmit()} disabled={loading} />
-        <Text style={{ marginTop: 10, color: "#56657E", fontSize: 12 }}>
-          Backend URL: set `EXPO_PUBLIC_API_BASE_URL` when starting Expo.
-        </Text>
       </Card>
     </Screen>
   );
