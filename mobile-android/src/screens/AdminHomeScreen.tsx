@@ -180,6 +180,13 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
     return sessions.filter((session) => `${session.eventName} ${session.status}`.toLowerCase().includes(query));
   }, [sessions, sessionsQuery]);
 
+  const hasOpenMenu = Boolean(openSessionMenuId || openMemberMenuId);
+
+  function closeAllMenus() {
+    setOpenSessionMenuId(null);
+    setOpenMemberMenuId(null);
+  }
+
   async function loadAll() {
     setLoading(true);
     setError("");
@@ -496,12 +503,16 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
         {error ? <StatusBanner tone="error" message={error} /> : null}
         {success ? <StatusBanner tone="success" message={success} /> : null}
         {loading ? <ListSkeleton rows={8} /> : null}
-        <FlatList
-          data={sessionListOpen ? filteredSessions : []}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          keyboardShouldPersistTaps="handled"
-          ListHeaderComponent={
+        <View style={styles.interactionLayer}>
+          {hasOpenMenu ? <Pressable style={styles.menuBackdrop} onPress={closeAllMenus} /> : null}
+          <FlatList
+            data={sessionListOpen ? filteredSessions : []}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            keyboardShouldPersistTaps="handled"
+            onScrollBeginDrag={closeAllMenus}
+            removeClippedSubviews={false}
+            ListHeaderComponent={
             <>
               <Card>
                 <Pressable style={styles.accordionHead} onPress={() => setSessionCreateOpen((prev) => !prev)}>
@@ -538,9 +549,9 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
               </Card>
             </>
           }
-          ListEmptyComponent={sessionListOpen ? <Text style={styles.meta}>No sessions found.</Text> : null}
-          renderItem={({ item }) => (
-            <View style={styles.rowItem}>
+            ListEmptyComponent={sessionListOpen ? <Text style={styles.meta}>No sessions found.</Text> : null}
+            renderItem={({ item }) => (
+            <View style={[styles.rowItem, openSessionMenuId === item.id && styles.rowItemOverlay]}>
               <View style={styles.rowHead}>
                 <Pressable style={styles.rowMain} onPress={() => toggleSessionExpanded(item.id)}>
                   <Text style={styles.titleStrong}>{item.eventName}</Text>
@@ -554,16 +565,16 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
                     <Text style={[styles.rowBadgeText, item.status === "ACTIVE" ? styles.badgeActiveText : styles.badgeNeutralText]}>{item.status}</Text>
                   </View>
                   <Pressable style={styles.moreButton} onPress={() => setOpenSessionMenuId((prev) => (prev === item.id ? null : item.id))}><Text style={styles.moreButtonText}>...</Text></Pressable>
-                  {openSessionMenuId === item.id ? (
-                    <View style={styles.menuPanel}>
-                      <Pressable style={styles.menuItem} onPress={() => { toggleSessionExpanded(item.id); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name={expandedSessionIds[item.id] ? "chevron-up" : "chevron-down"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{expandedSessionIds[item.id] ? "Hide Details" : "Show Details"}</Text></View></Pressable>
-                      <Pressable style={styles.menuItem} onPress={() => { startEditSession(item); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name="pencil-outline" size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>Edit</Text></View></Pressable>
-                      {item.status !== "CLOSED" ? <Pressable style={styles.menuItem} onPress={() => { void startOrCloseSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name={item.status === "ACTIVE" ? "stop-circle-outline" : "play-circle-outline"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{item.status === "ACTIVE" ? "Close Session" : "Start Session"}</Text></View></Pressable> : null}
-                      <Pressable style={styles.menuItem} onPress={() => { void deleteSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name="delete-outline" size={14} style={styles.menuIconDanger} /><Text style={styles.menuItemDanger}>Delete</Text></View></Pressable>
-                    </View>
-                  ) : null}
                 </View>
               </View>
+              {openSessionMenuId === item.id ? (
+                <View style={styles.menuPanelInline}>
+                  <Pressable style={styles.menuItem} onPress={() => { toggleSessionExpanded(item.id); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name={expandedSessionIds[item.id] ? "chevron-up" : "chevron-down"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{expandedSessionIds[item.id] ? "Hide Details" : "Show Details"}</Text></View></Pressable>
+                  <Pressable style={styles.menuItem} onPress={() => { startEditSession(item); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name="pencil-outline" size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>Edit</Text></View></Pressable>
+                  {item.status !== "CLOSED" ? <Pressable style={styles.menuItem} onPress={() => { void startOrCloseSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name={item.status === "ACTIVE" ? "stop-circle-outline" : "play-circle-outline"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{item.status === "ACTIVE" ? "Close Session" : "Start Session"}</Text></View></Pressable> : null}
+                  <Pressable style={styles.menuItem} onPress={() => { void deleteSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name="delete-outline" size={14} style={styles.menuIconDanger} /><Text style={styles.menuItemDanger}>Delete</Text></View></Pressable>
+                </View>
+              ) : null}
               {expandedSessionIds[item.id] ? (
                 <View style={styles.expandBody}>
                   <Text style={styles.meta}>Type: {item.mandatory ? "Mandatory" : "Optional"}</Text>
@@ -571,8 +582,9 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
                 </View>
               ) : null}
             </View>
-          )}
-        />
+            )}
+          />
+        </View>
       </Screen>
     );
   }
@@ -582,12 +594,16 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
       {error ? <StatusBanner tone="error" message={error} /> : null}
       {success ? <StatusBanner tone="success" message={success} /> : null}
       {loading ? <ListSkeleton rows={8} /> : null}
-      <FlatList
-        data={memberListOpen ? members : []}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={
+      <View style={styles.interactionLayer}>
+        {hasOpenMenu ? <Pressable style={styles.menuBackdrop} onPress={closeAllMenus} /> : null}
+        <FlatList
+          data={memberListOpen ? members : []}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          onScrollBeginDrag={closeAllMenus}
+          removeClippedSubviews={false}
+          ListHeaderComponent={
           <>
             <Card>
               <Pressable style={styles.accordionHead} onPress={() => setMemberCreateOpen((prev) => !prev)}>
@@ -628,9 +644,9 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
             </Card>
           </>
         }
-        ListEmptyComponent={memberListOpen ? <Text style={styles.meta}>No members found.</Text> : null}
-        renderItem={({ item }) => (
-          <View style={styles.rowItem}>
+          ListEmptyComponent={memberListOpen ? <Text style={styles.meta}>No members found.</Text> : null}
+          renderItem={({ item }) => (
+          <View style={[styles.rowItem, openMemberMenuId === item.id && styles.rowItemOverlay]}>
             <View style={styles.rowHead}>
               <Pressable style={styles.rowMain} onPress={() => toggleMemberExpanded(item.id)}>
                 <Text style={styles.titleStrong}>{item.fullName}</Text>
@@ -644,16 +660,16 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
                   <Text style={[styles.rowBadgeText, item.active ? styles.badgeActiveText : styles.badgeNeutralText]}>{item.active ? "ACTIVE" : "INACTIVE"}</Text>
                 </View>
                 <Pressable style={styles.moreButton} onPress={() => setOpenMemberMenuId((prev) => (prev === item.id ? null : item.id))}><Text style={styles.moreButtonText}>...</Text></Pressable>
-                {openMemberMenuId === item.id ? (
-                  <View style={styles.menuPanel}>
-                    <Pressable style={styles.menuItem} onPress={() => { toggleMemberExpanded(item.id); setOpenMemberMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name={expandedMemberIds[item.id] ? "chevron-up" : "chevron-down"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{expandedMemberIds[item.id] ? "Hide Details" : "Show Details"}</Text></View></Pressable>
-                    <Pressable style={styles.menuItem} onPress={() => { startEditMember(item); setOpenMemberMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name="pencil-outline" size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>Edit</Text></View></Pressable>
-                    <Pressable style={styles.menuItem} onPress={() => { void toggleMemberActive(item); setOpenMemberMenuId(null); }} disabled={memberSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name={item.active ? "account-off-outline" : "account-check-outline"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{item.active ? "Deactivate" : "Activate"}</Text></View></Pressable>
-                    <Pressable style={styles.menuItem} onPress={() => { void deleteMember(item); setOpenMemberMenuId(null); }} disabled={memberSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name="delete-outline" size={14} style={styles.menuIconDanger} /><Text style={styles.menuItemDanger}>Delete</Text></View></Pressable>
-                  </View>
-                ) : null}
               </View>
             </View>
+            {openMemberMenuId === item.id ? (
+              <View style={styles.menuPanelInline}>
+                <Pressable style={styles.menuItem} onPress={() => { toggleMemberExpanded(item.id); setOpenMemberMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name={expandedMemberIds[item.id] ? "chevron-up" : "chevron-down"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{expandedMemberIds[item.id] ? "Hide Details" : "Show Details"}</Text></View></Pressable>
+                <Pressable style={styles.menuItem} onPress={() => { startEditMember(item); setOpenMemberMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name="pencil-outline" size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>Edit</Text></View></Pressable>
+                <Pressable style={styles.menuItem} onPress={() => { void toggleMemberActive(item); setOpenMemberMenuId(null); }} disabled={memberSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name={item.active ? "account-off-outline" : "account-check-outline"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{item.active ? "Deactivate" : "Activate"}</Text></View></Pressable>
+                <Pressable style={styles.menuItem} onPress={() => { void deleteMember(item); setOpenMemberMenuId(null); }} disabled={memberSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name="delete-outline" size={14} style={styles.menuIconDanger} /><Text style={styles.menuItemDanger}>Delete</Text></View></Pressable>
+              </View>
+            ) : null}
             {expandedMemberIds[item.id] ? (
               <View style={styles.expandBody}>
                 <Text style={styles.meta}>Email: {item.email || "-"}</Text>
@@ -664,13 +680,16 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
               </View>
             ) : null}
           </View>
-        )}
-      />
+          )}
+        />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  interactionLayer: { flex: 1, position: "relative" },
+  menuBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 40, backgroundColor: "transparent" },
   listContent: { paddingBottom: 12 },
   titleWithIcon: { flexDirection: "row", alignItems: "center", gap: 6 },
   sectionIcon: { color: "#2f4f7f" },
@@ -682,6 +701,7 @@ const styles = StyleSheet.create({
   accordionHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   accordionIcon: { color: "#35517a", fontSize: 20, fontWeight: "800", marginTop: -4 },
   rowItem: { borderWidth: 1, borderColor: "#d5e1f4", borderRadius: 12, padding: 10, marginBottom: 8, backgroundColor: "#f5f9ff" },
+  rowItemOverlay: { zIndex: 120, elevation: 12, overflow: "visible" },
   rowHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 10 },
   rowMain: { flex: 1 },
   rowSubtitle: { color: "#4e6384", fontSize: 12, marginTop: 2, fontWeight: "600" },
@@ -697,7 +717,7 @@ const styles = StyleSheet.create({
   badgeNeutralText: { color: "#3f5475" },
   moreButton: { width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderColor: "#c7d7f2", backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" },
   moreButtonText: { color: "#2e476c", fontWeight: "900", marginTop: -4, fontSize: 18, lineHeight: 18 },
-  menuPanel: { position: "absolute", top: 34, right: 0, width: 150, borderWidth: 1, borderColor: "#d2dff2", borderRadius: 10, backgroundColor: "#ffffff", zIndex: 50, overflow: "hidden", shadowColor: "#0b2449", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  menuPanelInline: { marginTop: 8, borderWidth: 1, borderColor: "#d2dff2", borderRadius: 10, backgroundColor: "#ffffff", overflow: "hidden" },
   menuItem: { paddingHorizontal: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: "#edf2fb" },
   menuItemRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   menuIcon: { color: "#4f6384" },
