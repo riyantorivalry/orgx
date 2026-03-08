@@ -8,7 +8,7 @@ import { AdminLoginScreen } from "./src/screens/AdminLoginScreen";
 import { authApi } from "./src/services/authApi";
 import type { AdminAuthUser } from "./src/types/admin";
 
-type AdminTab = "home" | "sessions" | "members";
+type AdminTab = "home" | "sessions" | "members" | "profile";
 
 export default function App() {
   const [adminUser, setAdminUser] = useState<AdminAuthUser | null>(null);
@@ -32,7 +32,7 @@ export default function App() {
       </View>
 
       <View style={[styles.body, adminUser && styles.bodyWithNav]}>
-        {!adminUser ? <AdminLoginScreen onLoggedIn={setAdminUser} /> : <AdminHomeScreen user={adminUser} view={tab} />}
+        {!adminUser ? <AdminLoginScreen onLoggedIn={setAdminUser} /> : <AdminHomeScreen user={adminUser} view={tab} onLogout={logout} />}
       </View>
 
       {adminUser ? (
@@ -40,7 +40,7 @@ export default function App() {
           <TabButton label="Home" activeIcon="home" inactiveIcon="home-outline" active={tab === "home"} onPress={() => setTab("home")} />
           <TabButton label="Sessions" activeIcon="calendar-month" inactiveIcon="calendar-month-outline" active={tab === "sessions"} onPress={() => setTab("sessions")} />
           <TabButton label="Members" activeIcon="account-group" inactiveIcon="account-group-outline" active={tab === "members"} onPress={() => setTab("members")} />
-          <TabButton label="Logout" activeIcon="logout" inactiveIcon="logout" active={false} onPress={() => void logout()} danger />
+          <TabButton label="Profile" activeIcon="account-circle" inactiveIcon="account-circle-outline" active={tab === "profile"} onPress={() => setTab("profile")} />
         </View>
       ) : null}
     </SafeAreaView>

@@ -13,7 +13,8 @@ import type { AdminAuthUser, AdminMember, AdminSessionDashboard, AdminSessionLis
 
 type AdminHomeScreenProps = {
   user: AdminAuthUser;
-  view: "home" | "sessions" | "members";
+  view: "home" | "sessions" | "members" | "profile";
+  onLogout: () => Promise<void>;
 };
 
 type MemberFormState = {
@@ -118,7 +119,7 @@ type ConfirmDialogState = {
   resolve: (value: boolean) => void;
 };
 
-export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
+export function AdminHomeScreen({ user, view, onLogout }: AdminHomeScreenProps) {
   const [sessions, setSessions] = useState<AdminSessionListItem[]>([]);
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [sessionMetrics, setSessionMetrics] = useState<Record<string, AdminSessionDashboard>>({});
@@ -641,6 +642,31 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
     );
   }
 
+  if (view === "profile") {
+    return (
+      <Screen title="Profile" scroll={false}>
+        {error ? <StatusBanner tone="error" message={error} /> : null}
+        {success ? <StatusBanner tone="success" message={success} /> : null}
+        <Card>
+          <View style={styles.titleWithIcon}>
+            <MaterialCommunityIcons name="account-circle-outline" size={20} style={styles.sectionIcon} />
+            <Text style={styles.sectionTitle}>Admin Account</Text>
+          </View>
+          <Text style={styles.metaStrong}>Username: {user.username}</Text>
+          <Text style={styles.meta}>Role: Administrator</Text>
+          <Text style={styles.metaMuted}>Use this section to manage account actions.</Text>
+        </Card>
+        <Card>
+          <Pressable style={styles.profileLogoutButton} onPress={() => void onLogout()}>
+            <MaterialCommunityIcons name="logout" size={16} style={styles.profileLogoutIcon} />
+            <Text style={styles.profileLogoutText}>Logout</Text>
+          </Pressable>
+        </Card>
+        {confirmDialogNode}
+      </Screen>
+    );
+  }
+
   return (
     <Screen title="Members" scroll={false}>
       {error ? <StatusBanner tone="error" message={error} /> : null}
@@ -811,6 +837,19 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, borderWidth: 1, borderColor: "#a8b8d3", borderRadius: 10, backgroundColor: "#fff", color: theme.ink, paddingVertical: 10, paddingHorizontal: 10, fontSize: 14 },
   searchButton: { minHeight: 40, minWidth: 72, borderRadius: 10, borderWidth: 1, borderColor: theme.primary, backgroundColor: theme.primary, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 },
   searchButtonText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  profileLogoutButton: {
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: "#f0bebe",
+    borderRadius: 10,
+    backgroundColor: "#fff1f1",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  profileLogoutIcon: { color: "#9d2424" },
+  profileLogoutText: { color: "#9d2424", fontWeight: "800", fontSize: 14 },
   dialogBackdrop: {
     flex: 1,
     backgroundColor: "rgba(11, 26, 47, 0.45)",
