@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { theme } from "../lib/theme";
 
@@ -6,9 +7,25 @@ type Tone = "success" | "warning" | "error";
 type StatusBannerProps = {
   tone: Tone;
   message: string;
+  autoHideMs?: number;
 };
 
-export function StatusBanner({ tone, message }: StatusBannerProps) {
+export function StatusBanner({ tone, message, autoHideMs = 4000 }: StatusBannerProps) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    setVisible(true);
+    if (autoHideMs <= 0) {
+      return;
+    }
+    const timeout = setTimeout(() => setVisible(false), autoHideMs);
+    return () => clearTimeout(timeout);
+  }, [message, tone, autoHideMs]);
+
+  if (!visible) {
+    return null;
+  }
+
   return (
     <View style={[styles.base, tone === "success" && styles.success, tone === "warning" && styles.warning, tone === "error" && styles.error]}>
       <Text style={[styles.text, tone === "success" && styles.successText, tone === "warning" && styles.warningText, tone === "error" && styles.errorText]}>

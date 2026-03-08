@@ -31,17 +31,21 @@ function defaultSessionForm(): SessionFormState {
   const end = new Date(now.getTime() + 2 * 60 * 60 * 1000);
   return {
     eventName: "",
-    startsAtLocal: toLocalDateTimeInput(now.toISOString()),
-    endsAtLocal: toLocalDateTimeInput(end.toISOString()),
+    startDate: toLocalDateTimeInput(now.toISOString()).slice(0, 10),
+    endDate: toLocalDateTimeInput(end.toISOString()).slice(0, 10),
+    startTime: toLocalDateTimeInput(now.toISOString()).slice(11, 16),
+    endTime: toLocalDateTimeInput(end.toISOString()).slice(11, 16),
     mandatory: true,
   };
 }
 
 function sessionFormToInput(form: SessionFormState): CreateSessionInput {
+  const startsAtLocal = `${form.startDate}T${form.startTime}`;
+  const endsAtLocal = `${form.endDate}T${form.endTime}`;
   return {
     eventName: form.eventName.trim(),
-    startsAt: toIsoFromLocalDateTimeInput(form.startsAtLocal),
-    endsAt: toIsoFromLocalDateTimeInput(form.endsAtLocal),
+    startsAt: toIsoFromLocalDateTimeInput(startsAtLocal),
+    endsAt: toIsoFromLocalDateTimeInput(endsAtLocal),
     mandatory: form.mandatory,
   };
 }
@@ -109,12 +113,16 @@ export function useSessionsAdmin({ openConfirm, setError, setSuccess }: UseSessi
   }
 
   function startEditSession(session: AdminSessionListItem | AdminSessionState) {
+    const start = toLocalDateTimeInput(session.startsAt);
+    const end = toLocalDateTimeInput(session.endsAt);
     setEditingSessionId(session.id);
     setSessionCreateOpen(true);
     setSessionForm({
       eventName: session.eventName,
-      startsAtLocal: toLocalDateTimeInput(session.startsAt),
-      endsAtLocal: toLocalDateTimeInput(session.endsAt),
+      startDate: start.slice(0, 10),
+      endDate: end.slice(0, 10),
+      startTime: start.slice(11, 16),
+      endTime: end.slice(11, 16),
       mandatory: session.mandatory,
     });
     setError("");
@@ -122,7 +130,7 @@ export function useSessionsAdmin({ openConfirm, setError, setSuccess }: UseSessi
   }
 
   async function saveSession() {
-    if (!sessionForm.eventName.trim() || !sessionForm.startsAtLocal || !sessionForm.endsAtLocal) {
+    if (!sessionForm.eventName.trim() || !sessionForm.startDate || !sessionForm.endDate || !sessionForm.startTime || !sessionForm.endTime) {
       setError("Session event name, start time, and end time are required.");
       return;
     }
@@ -152,6 +160,7 @@ export function useSessionsAdmin({ openConfirm, setError, setSuccess }: UseSessi
         setSuccess("Session created.");
       }
       resetSessionForm();
+      setSessionCreateOpen(false);
       await refreshSessions();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save session");

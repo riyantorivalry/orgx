@@ -18,8 +18,10 @@ export type ConfirmDialogState = {
 
 export type SessionFormState = {
   eventName: string;
-  startsAtLocal: string;
-  endsAtLocal: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
   mandatory: boolean;
 };
 

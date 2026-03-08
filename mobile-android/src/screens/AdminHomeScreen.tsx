@@ -93,6 +93,8 @@ export function AdminHomeScreen({ user, view, onLogout }: AdminHomeScreenProps) 
 
   useEffect(() => {
     closeAllMenus();
+    setError("");
+    setSuccess("");
   }, [view]);
 
   async function loadAll() {
