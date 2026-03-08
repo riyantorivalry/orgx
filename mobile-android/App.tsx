@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "./src/lib/theme";
 import { AdminHomeScreen } from "./src/screens/AdminHomeScreen";
 import { AdminLoginScreen } from "./src/screens/AdminLoginScreen";
@@ -36,10 +37,10 @@ export default function App() {
 
       {adminUser ? (
         <View style={styles.bottomNav}>
-          <TabButton label="Home" active={tab === "home"} onPress={() => setTab("home")} />
-          <TabButton label="Sessions" active={tab === "sessions"} onPress={() => setTab("sessions")} />
-          <TabButton label="Members" active={tab === "members"} onPress={() => setTab("members")} />
-          <TabButton label="Logout" active={false} onPress={() => void logout()} danger />
+          <TabButton label="Home" activeIcon="home" inactiveIcon="home-outline" active={tab === "home"} onPress={() => setTab("home")} />
+          <TabButton label="Sessions" activeIcon="calendar-month" inactiveIcon="calendar-month-outline" active={tab === "sessions"} onPress={() => setTab("sessions")} />
+          <TabButton label="Members" activeIcon="account-group" inactiveIcon="account-group-outline" active={tab === "members"} onPress={() => setTab("members")} />
+          <TabButton label="Logout" activeIcon="logout" inactiveIcon="logout" active={false} onPress={() => void logout()} danger />
         </View>
       ) : null}
     </SafeAreaView>
@@ -48,15 +49,26 @@ export default function App() {
 
 type TabButtonProps = {
   label: string;
+  activeIcon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  inactiveIcon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   active: boolean;
   onPress: () => void;
   danger?: boolean;
 };
 
-function TabButton({ label, active, onPress, danger }: TabButtonProps) {
+function TabButton({ label, activeIcon, inactiveIcon, active, onPress, danger }: TabButtonProps) {
   return (
-    <Pressable onPress={onPress} style={[styles.tabButton, active && styles.tabButtonActive, danger && styles.tabButtonDanger]} hitSlop={6}>
-      <Text style={[styles.tabText, active && styles.tabTextActive, danger && styles.tabTextDanger]}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel={label}
+      style={[styles.tabButton, active && styles.tabButtonActive, danger && styles.tabButtonDanger]}
+      hitSlop={6}
+    >
+      <MaterialCommunityIcons
+        name={active ? activeIcon : inactiveIcon}
+        size={active ? 32 : 28}
+        style={[styles.tabIcon, active && styles.tabIconActive, danger && styles.tabIconDanger]}
+      />
     </Pressable>
   );
 }
@@ -114,31 +126,25 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    borderColor: "#c5d6fb",
-    borderWidth: 1,
     borderRadius: 12,
-    backgroundColor: "#eef4ff",
+    backgroundColor: "transparent",
     minHeight: 46,
     alignItems: "center",
     justifyContent: "center",
   },
   tabButtonActive: {
-    backgroundColor: theme.primary,
-    borderColor: theme.primaryStrong,
+    backgroundColor: "#e9f0ff",
   },
   tabButtonDanger: {
-    backgroundColor: "#fff1f1",
-    borderColor: "#f0bebe",
+    backgroundColor: "transparent",
   },
-  tabText: {
+  tabIcon: {
     color: "#1f3f74",
-    fontWeight: "800",
-    fontSize: 12,
   },
-  tabTextActive: {
-    color: "#ffffff",
+  tabIconActive: {
+    color: "#163e7b",
   },
-  tabTextDanger: {
+  tabIconDanger: {
     color: "#9d2424",
   },
   body: {

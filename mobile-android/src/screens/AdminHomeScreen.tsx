@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Card } from "../components/Card";
 import { ListSkeleton } from "../components/ListSkeleton";
 import { Screen } from "../components/Screen";
@@ -424,42 +425,66 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
         {error ? <StatusBanner tone="error" message={error} /> : null}
         {success ? <StatusBanner tone="success" message={success} /> : null}
         <FlatList
-          data={incomingSessions}
-          keyExtractor={(item) => item.id}
+          data={[]}
+          keyExtractor={(_, index) => `home-${index}`}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
             <>
               <Card>
-                <Text style={styles.sectionTitle}>Quick Summary</Text>
+                <View style={styles.titleWithIcon}><MaterialCommunityIcons name="view-dashboard-outline" size={18} style={styles.sectionIcon} /><Text style={styles.sectionTitle}>Quick Summary</Text></View>
                 <View style={styles.summaryRow}>
-                  <View style={styles.summaryChip}><Text style={styles.summaryLabel}>Sessions</Text><Text style={styles.summaryValue}>{sessions.length}</Text></View>
-                  <View style={styles.summaryChip}><Text style={styles.summaryLabel}>Members</Text><Text style={styles.summaryValue}>{members.length}</Text></View>
-                  <View style={styles.summaryChip}><Text style={styles.summaryLabel}>Active Now</Text><Text style={styles.summaryValue}>{currentSession ? 1 : 0}</Text></View>
+                  <View style={styles.summaryChip}>
+                    <MaterialCommunityIcons name="calendar-multiple" size={16} style={styles.summaryIcon} />
+                    <Text style={styles.summaryLabel}>Sessions</Text>
+                    <Text style={styles.summaryValue}>{sessions.length}</Text>
+                  </View>
+                  <View style={styles.summaryChip}>
+                    <MaterialCommunityIcons name="account-group-outline" size={16} style={styles.summaryIcon} />
+                    <Text style={styles.summaryLabel}>Members</Text>
+                    <Text style={styles.summaryValue}>{members.length}</Text>
+                  </View>
+                  <View style={styles.summaryChip}>
+                    <MaterialCommunityIcons name="play-circle-outline" size={16} style={styles.summaryIcon} />
+                    <Text style={styles.summaryLabel}>Active Now</Text>
+                    <Text style={styles.summaryValue}>{currentSession ? 1 : 0}</Text>
+                  </View>
                 </View>
               </Card>
               <Card>
-                <Text style={styles.sectionTitle}>Current Session</Text>
-                {!currentSession ? <Text style={styles.meta}>No active session right now.</Text> : null}
+                <View style={styles.titleWithIcon}><MaterialCommunityIcons name="clock-outline" size={18} style={styles.sectionIcon} /><Text style={styles.sectionTitle}>Current Session</Text></View>
+                {!currentSession ? <Text style={styles.metaMuted}>No active session right now.</Text> : null}
                 {currentSession ? (
                   <>
                     <Text style={styles.titleStrong}>{currentSession.eventName}</Text>
-                    <Text style={styles.meta}>{formatDateTime(currentSession.startsAt)} - {formatDateTime(currentSession.endsAt)}</Text>
-                    <Text style={styles.meta}>Total Check-ins: {sessionMetrics[currentSession.id]?.totalCheckIns ?? "-"}</Text>
-                    <Text style={styles.meta}>Check-in Rate: {formatRate(sessionMetrics[currentSession.id]?.checkInRatePercent)}</Text>
+                    <Text style={styles.metaStrong}>{formatDateTime(currentSession.startsAt)} - {formatDateTime(currentSession.endsAt)}</Text>
+                    <View style={styles.inlineRow}>
+                      <View style={styles.metricPill}>
+                        <Text style={styles.metricPillLabel}>Check-ins</Text>
+                        <Text style={styles.metricPillValue}>{sessionMetrics[currentSession.id]?.totalCheckIns ?? "-"}</Text>
+                      </View>
+                      <View style={styles.metricPill}>
+                        <Text style={styles.metricPillLabel}>Rate</Text>
+                        <Text style={styles.metricPillValue}>{formatRate(sessionMetrics[currentSession.id]?.checkInRatePercent)}</Text>
+                      </View>
+                    </View>
                   </>
                 ) : null}
               </Card>
-              <Text style={styles.sectionTitle}>Incoming Sessions</Text>
+              <Card>
+                <View style={styles.titleWithIcon}><MaterialCommunityIcons name="calendar-arrow-right" size={18} style={styles.sectionIcon} /><Text style={styles.sectionTitle}>Incoming Sessions</Text></View>
+                {!incomingSessions.length ? <Text style={styles.metaMuted}>No incoming session scheduled.</Text> : null}
+                {incomingSessions.map((item) => (
+                  <View key={item.id} style={styles.incomingItem}>
+                    <Text style={styles.incomingTitle}>{item.eventName}</Text>
+                    <Text style={styles.metaStrong}>{formatDateTime(item.startsAt)}</Text>
+                    <Text style={styles.meta}>Type: {item.mandatory ? "Mandatory" : "Optional"} | {item.status}</Text>
+                  </View>
+                ))}
+              </Card>
             </>
           }
-          ListEmptyComponent={<Text style={styles.meta}>No incoming session scheduled.</Text>}
-          renderItem={({ item }) => (
-            <View style={styles.rowItem}>
-              <Text style={styles.titleStrong}>{item.eventName}</Text>
-              <Text style={styles.meta}>{formatDateTime(item.startsAt)}</Text>
-              <Text style={styles.meta}>{item.mandatory ? "Mandatory" : "Optional"} | {item.status}</Text>
-            </View>
-          )}
+          ListEmptyComponent={null}
+          renderItem={() => null}
         />
       </Screen>
     );
@@ -480,7 +505,7 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
             <>
               <Card>
                 <Pressable style={styles.accordionHead} onPress={() => setSessionCreateOpen((prev) => !prev)}>
-                  <Text style={styles.sectionTitle}>{sessionCreateOpen ? "Hide Create Session" : "Create Session"}</Text>
+                  <View style={styles.titleWithIcon}><MaterialCommunityIcons name="calendar-plus" size={18} style={styles.sectionIcon} /><Text style={styles.sectionTitle}>{sessionCreateOpen ? "Hide Create Session" : "Create Session"}</Text></View>
                   <Text style={styles.accordionIcon}>{sessionCreateOpen ? "-" : "+"}</Text>
                 </Pressable>
                 {sessionCreateOpen ? (
@@ -502,7 +527,7 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
               </Card>
               <Card>
                 <Pressable style={styles.accordionHead} onPress={() => setSessionListOpen((prev) => !prev)}>
-                  <Text style={styles.sectionTitle}>{sessionListOpen ? "Hide All Sessions" : "All Sessions"}</Text>
+                  <View style={styles.titleWithIcon}><MaterialCommunityIcons name="calendar-multiple" size={18} style={styles.sectionIcon} /><Text style={styles.sectionTitle}>{sessionListOpen ? "Hide All Sessions" : "All Sessions"}</Text></View>
                   <Text style={styles.accordionIcon}>{sessionListOpen ? "-" : "+"}</Text>
                 </Pressable>
                 {sessionListOpen ? (
@@ -519,7 +544,10 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
               <View style={styles.rowHead}>
                 <Pressable style={styles.rowMain} onPress={() => toggleSessionExpanded(item.id)}>
                   <Text style={styles.titleStrong}>{item.eventName}</Text>
-                  <Text style={styles.rowSubtitle}>{formatDateTime(item.startsAt)} - {formatDateTime(item.endsAt)}</Text>
+                  <View style={styles.rowSubtitleWithIcon}>
+                    <MaterialCommunityIcons name="clock-outline" size={14} style={styles.rowMetaIcon} />
+                    <Text style={styles.rowSubtitleText}>{formatDateTime(item.startsAt)} - {formatDateTime(item.endsAt)}</Text>
+                  </View>
                 </Pressable>
                 <View style={styles.rowActionsTop}>
                   <View style={[styles.rowBadge, item.status === "ACTIVE" ? styles.badgeActive : styles.badgeNeutral]}>
@@ -528,10 +556,10 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
                   <Pressable style={styles.moreButton} onPress={() => setOpenSessionMenuId((prev) => (prev === item.id ? null : item.id))}><Text style={styles.moreButtonText}>...</Text></Pressable>
                   {openSessionMenuId === item.id ? (
                     <View style={styles.menuPanel}>
-                      <Pressable style={styles.menuItem} onPress={() => { toggleSessionExpanded(item.id); setOpenSessionMenuId(null); }}><Text style={styles.menuItemText}>{expandedSessionIds[item.id] ? "Hide Details" : "Show Details"}</Text></Pressable>
-                      <Pressable style={styles.menuItem} onPress={() => { startEditSession(item); setOpenSessionMenuId(null); }}><Text style={styles.menuItemText}>Edit</Text></Pressable>
-                      {item.status !== "CLOSED" ? <Pressable style={styles.menuItem} onPress={() => { void startOrCloseSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><Text style={styles.menuItemText}>{item.status === "ACTIVE" ? "Close Session" : "Start Session"}</Text></Pressable> : null}
-                      <Pressable style={styles.menuItem} onPress={() => { void deleteSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><Text style={styles.menuItemDanger}>Delete</Text></Pressable>
+                      <Pressable style={styles.menuItem} onPress={() => { toggleSessionExpanded(item.id); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name={expandedSessionIds[item.id] ? "chevron-up" : "chevron-down"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{expandedSessionIds[item.id] ? "Hide Details" : "Show Details"}</Text></View></Pressable>
+                      <Pressable style={styles.menuItem} onPress={() => { startEditSession(item); setOpenSessionMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name="pencil-outline" size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>Edit</Text></View></Pressable>
+                      {item.status !== "CLOSED" ? <Pressable style={styles.menuItem} onPress={() => { void startOrCloseSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name={item.status === "ACTIVE" ? "stop-circle-outline" : "play-circle-outline"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{item.status === "ACTIVE" ? "Close Session" : "Start Session"}</Text></View></Pressable> : null}
+                      <Pressable style={styles.menuItem} onPress={() => { void deleteSession(item); setOpenSessionMenuId(null); }} disabled={sessionSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name="delete-outline" size={14} style={styles.menuIconDanger} /><Text style={styles.menuItemDanger}>Delete</Text></View></Pressable>
                     </View>
                   ) : null}
                 </View>
@@ -563,7 +591,7 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
           <>
             <Card>
               <Pressable style={styles.accordionHead} onPress={() => setMemberCreateOpen((prev) => !prev)}>
-                <Text style={styles.sectionTitle}>{memberCreateOpen ? "Hide Create Member" : "Create Member"}</Text>
+                <View style={styles.titleWithIcon}><MaterialCommunityIcons name="account-plus-outline" size={18} style={styles.sectionIcon} /><Text style={styles.sectionTitle}>{memberCreateOpen ? "Hide Create Member" : "Create Member"}</Text></View>
                 <Text style={styles.accordionIcon}>{memberCreateOpen ? "-" : "+"}</Text>
               </Pressable>
               {memberCreateOpen ? (
@@ -588,7 +616,7 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
             </Card>
             <Card>
               <Pressable style={styles.accordionHead} onPress={() => setMemberListOpen((prev) => !prev)}>
-                <Text style={styles.sectionTitle}>{memberListOpen ? "Hide All Members" : "All Members"}</Text>
+                <View style={styles.titleWithIcon}><MaterialCommunityIcons name="account-group-outline" size={18} style={styles.sectionIcon} /><Text style={styles.sectionTitle}>{memberListOpen ? "Hide All Members" : "All Members"}</Text></View>
                 <Text style={styles.accordionIcon}>{memberListOpen ? "-" : "+"}</Text>
               </Pressable>
               {memberListOpen ? (
@@ -606,7 +634,10 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
             <View style={styles.rowHead}>
               <Pressable style={styles.rowMain} onPress={() => toggleMemberExpanded(item.id)}>
                 <Text style={styles.titleStrong}>{item.fullName}</Text>
-                <Text style={styles.rowSubtitle}>Code: {item.memberCode}</Text>
+                <View style={styles.rowSubtitleWithIcon}>
+                  <MaterialCommunityIcons name="badge-account-horizontal-outline" size={14} style={styles.rowMetaIcon} />
+                  <Text style={styles.rowSubtitleText}>Code: {item.memberCode}</Text>
+                </View>
               </Pressable>
               <View style={styles.rowActionsTop}>
                 <View style={[styles.rowBadge, item.active ? styles.badgeActive : styles.badgeNeutral]}>
@@ -615,10 +646,10 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
                 <Pressable style={styles.moreButton} onPress={() => setOpenMemberMenuId((prev) => (prev === item.id ? null : item.id))}><Text style={styles.moreButtonText}>...</Text></Pressable>
                 {openMemberMenuId === item.id ? (
                   <View style={styles.menuPanel}>
-                    <Pressable style={styles.menuItem} onPress={() => { toggleMemberExpanded(item.id); setOpenMemberMenuId(null); }}><Text style={styles.menuItemText}>{expandedMemberIds[item.id] ? "Hide Details" : "Show Details"}</Text></Pressable>
-                    <Pressable style={styles.menuItem} onPress={() => { startEditMember(item); setOpenMemberMenuId(null); }}><Text style={styles.menuItemText}>Edit</Text></Pressable>
-                    <Pressable style={styles.menuItem} onPress={() => { void toggleMemberActive(item); setOpenMemberMenuId(null); }} disabled={memberSaving}><Text style={styles.menuItemText}>{item.active ? "Deactivate" : "Activate"}</Text></Pressable>
-                    <Pressable style={styles.menuItem} onPress={() => { void deleteMember(item); setOpenMemberMenuId(null); }} disabled={memberSaving}><Text style={styles.menuItemDanger}>Delete</Text></Pressable>
+                    <Pressable style={styles.menuItem} onPress={() => { toggleMemberExpanded(item.id); setOpenMemberMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name={expandedMemberIds[item.id] ? "chevron-up" : "chevron-down"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{expandedMemberIds[item.id] ? "Hide Details" : "Show Details"}</Text></View></Pressable>
+                    <Pressable style={styles.menuItem} onPress={() => { startEditMember(item); setOpenMemberMenuId(null); }}><View style={styles.menuItemRow}><MaterialCommunityIcons name="pencil-outline" size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>Edit</Text></View></Pressable>
+                    <Pressable style={styles.menuItem} onPress={() => { void toggleMemberActive(item); setOpenMemberMenuId(null); }} disabled={memberSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name={item.active ? "account-off-outline" : "account-check-outline"} size={14} style={styles.menuIcon} /><Text style={styles.menuItemText}>{item.active ? "Deactivate" : "Activate"}</Text></View></Pressable>
+                    <Pressable style={styles.menuItem} onPress={() => { void deleteMember(item); setOpenMemberMenuId(null); }} disabled={memberSaving}><View style={styles.menuItemRow}><MaterialCommunityIcons name="delete-outline" size={14} style={styles.menuIconDanger} /><Text style={styles.menuItemDanger}>Delete</Text></View></Pressable>
                   </View>
                 ) : null}
               </View>
@@ -641,15 +672,22 @@ export function AdminHomeScreen({ user, view }: AdminHomeScreenProps) {
 
 const styles = StyleSheet.create({
   listContent: { paddingBottom: 12 },
-  sectionTitle: { color: theme.ink, fontSize: 18, fontWeight: "800", marginBottom: 6 },
-  titleStrong: { color: "#183a72", fontSize: 16, fontWeight: "800" },
-  meta: { color: "#304056", fontSize: 13, fontWeight: "600", marginTop: 2 },
+  titleWithIcon: { flexDirection: "row", alignItems: "center", gap: 6 },
+  sectionIcon: { color: "#2f4f7f" },
+  sectionTitle: { color: "#122d54", fontSize: 18, fontWeight: "800", marginBottom: 6 },
+  titleStrong: { color: "#173764", fontSize: 16, fontWeight: "800" },
+  meta: { color: "#375276", fontSize: 13, fontWeight: "600", marginTop: 2 },
+  metaStrong: { color: "#223f65", fontSize: 13, fontWeight: "700", marginTop: 2 },
+  metaMuted: { color: "#637795", fontSize: 13, fontWeight: "600", marginTop: 2 },
   accordionHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   accordionIcon: { color: "#35517a", fontSize: 20, fontWeight: "800", marginTop: -4 },
   rowItem: { borderWidth: 1, borderColor: "#d5e1f4", borderRadius: 12, padding: 10, marginBottom: 8, backgroundColor: "#f5f9ff" },
   rowHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 10 },
   rowMain: { flex: 1 },
   rowSubtitle: { color: "#4e6384", fontSize: 12, marginTop: 2, fontWeight: "600" },
+  rowSubtitleWithIcon: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  rowSubtitleText: { color: "#4e6384", fontSize: 12, fontWeight: "600" },
+  rowMetaIcon: { color: "#5d7192" },
   rowActionsTop: { alignItems: "flex-end", position: "relative" },
   rowBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 6 },
   rowBadgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.3 },
@@ -661,14 +699,23 @@ const styles = StyleSheet.create({
   moreButtonText: { color: "#2e476c", fontWeight: "900", marginTop: -4, fontSize: 18, lineHeight: 18 },
   menuPanel: { position: "absolute", top: 34, right: 0, width: 150, borderWidth: 1, borderColor: "#d2dff2", borderRadius: 10, backgroundColor: "#ffffff", zIndex: 50, overflow: "hidden", shadowColor: "#0b2449", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
   menuItem: { paddingHorizontal: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: "#edf2fb" },
+  menuItemRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  menuIcon: { color: "#4f6384" },
+  menuIconDanger: { color: "#9d2424" },
   menuItemText: { color: "#2e476c", fontSize: 12, fontWeight: "700" },
   menuItemDanger: { color: "#9d2424", fontSize: 12, fontWeight: "700" },
   expandBody: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#dbe5f4" },
   summaryRow: { flexDirection: "row", gap: 8 },
   summaryChip: { flex: 1, borderWidth: 1, borderColor: "#d2dff2", borderRadius: 10, padding: 8, backgroundColor: "#f8fbff" },
-  summaryLabel: { color: "#4a6185", fontSize: 11, fontWeight: "700" },
-  summaryValue: { marginTop: 3, color: "#143562", fontSize: 18, fontWeight: "800" },
+  summaryIcon: { color: "#4b6791", marginBottom: 4 },
+  summaryLabel: { color: "#5b7092", fontSize: 11, fontWeight: "700" },
+  summaryValue: { marginTop: 3, color: "#12335f", fontSize: 18, fontWeight: "800" },
   inlineRow: { flexDirection: "row", gap: 8, alignItems: "center", marginTop: 4, flexWrap: "wrap" },
+  metricPill: { borderWidth: 1, borderColor: "#d1def2", borderRadius: 999, backgroundColor: "#f4f8ff", paddingHorizontal: 10, paddingVertical: 6 },
+  metricPillLabel: { color: "#5b7092", fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.3 },
+  metricPillValue: { color: "#12335f", fontSize: 13, fontWeight: "800", marginTop: 1 },
+  incomingItem: { borderWidth: 1, borderColor: "#d7e3f5", borderRadius: 10, backgroundColor: "#f8fbff", padding: 10, marginTop: 8 },
+  incomingTitle: { color: "#183a72", fontSize: 15, fontWeight: "800" },
   actionChip: { borderWidth: 1, borderColor: "#b8cbe8", borderRadius: 10, backgroundColor: "#ffffff", minHeight: 40, minWidth: 90, paddingHorizontal: 10, alignItems: "center", justifyContent: "center" },
   actionChipActive: { borderColor: "#a4dfc1", backgroundColor: "#d4f6e4" },
   actionChipText: { color: "#2e476c", fontWeight: "700" },
